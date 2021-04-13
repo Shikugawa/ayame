@@ -5,13 +5,24 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+//namespace:
+//- name: ns1
+//  device:
+//	- attach: veth1
+//	  cidr: 192.168.100.10/24
+//- name: ns2
+//  device:
+//	- attach: veth1-target
+//    cidr: 192.168.100.20/24
+
 type Veth struct {
-	Name string `yaml:name`
+	Left  string `yaml:left`
+	Right string `yaml:right`
 }
 
 type Device struct {
-	Attach string `yaml:attach`
-	Cidr   string `yaml:cidr`
+	Name string `yaml:name`
+	Cidr string `yaml:cidr`
 }
 
 type Namespace struct {
@@ -20,7 +31,7 @@ type Namespace struct {
 }
 
 type Config struct {
-	Veth []Veth           `yaml:veth`
+	Veth      []Veth      `yaml:veth`
 	Namespace []Namespace `yaml:namespace`
 }
 

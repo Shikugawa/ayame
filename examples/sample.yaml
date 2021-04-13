@@ -1,8 +1,13 @@
 veth:
-  - name: veth1
+  - left: veth1
+    right: veth1-target
 
 namespace:
   - name: ns1
     device:
-      - attach: veth1
+      - name: veth1
         cidr: 192.168.100.10/24
+#  - name: ns2
+#    device:
+#      - name: veth1-target
+#        cidr: 192.168.100.20/24
