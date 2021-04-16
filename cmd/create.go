@@ -43,7 +43,8 @@ var (
 				return
 			}
 
-			s, err := state.InitAll(cfg, createVerbose)
+			st, _ := state.LoadStateFromFile()
+			s, err := state.InitAll(cfg, st, createVerbose)
 
 			fmt.Println("succeded to initialize")
 

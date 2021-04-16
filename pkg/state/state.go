@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/Shikugawa/ayame/pkg/config"
@@ -33,7 +34,14 @@ var statePath = os.Getenv("HOME") + "/.ayame"
 
 const stateFileName = "state.json"
 
-func InitAll(cfg *config.Config, verbose bool) (*State, error) {
+func InitAll(cfg *config.Config, currState *State, verbose bool) (*State, error) {
+	if currState != nil {
+		if err := currState.DisposeResources(verbose); err != nil {
+			return nil, err
+		}
+		log.Println("existing resources destroyed")
+	}
+
 	pairs, err := network.InitVethPairs(cfg.Veth, verbose)
 	if err != nil {
 		network.CleanupAllVethPairs(&pairs, verbose)
