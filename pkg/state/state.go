@@ -33,17 +33,17 @@ var statePath = os.Getenv("HOME") + "/.ayame"
 
 const stateFileName = "state.json"
 
-func InitAll(cfg *config.Config) (*State, error) {
-	pairs, err := network.InitVethPairs(cfg.Veth)
+func InitAll(cfg *config.Config, verbose bool) (*State, error) {
+	pairs, err := network.InitVethPairs(cfg.Veth, verbose)
 	if err != nil {
-		network.CleanupAllVethPairs(&pairs)
+		network.CleanupAllVethPairs(&pairs, verbose)
 		return nil, err
 	}
 
-	ns, err := network.InitNamespaces(cfg.Namespace, &pairs)
+	ns, err := network.InitNamespaces(cfg.Namespace, &pairs, verbose)
 	if err != nil {
-		network.CleanupAllVethPairs(&pairs)
-		network.CleanupAllNamespaces(&ns)
+		network.CleanupAllVethPairs(&pairs, verbose)
+		network.CleanupAllNamespaces(&ns, verbose)
 		return nil, err
 	}
 
@@ -85,11 +85,11 @@ func (s *State) SaveState() error {
 	return nil
 }
 
-func (s *State) DisposeResources() error {
-	if err := network.CleanupAllVethPairs(&s.VethPairs); err != nil {
+func (s *State) DisposeResources(verbose bool) error {
+	if err := network.CleanupAllVethPairs(&s.VethPairs, verbose); err != nil {
 		return err
 	}
-	if err := network.CleanupAllNamespaces(&s.Namespaces); err != nil {
+	if err := network.CleanupAllNamespaces(&s.Namespaces, verbose); err != nil {
 		return err
 	}
 	if err := os.Remove(statePath + "/" + stateFileName); err != nil {

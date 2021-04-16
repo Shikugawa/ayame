@@ -14,27 +14,33 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
+	"os"
 
 	"github.com/Shikugawa/ayame/pkg/state"
 	"github.com/spf13/cobra"
 )
 
 // deleteCmd represents the delete command
-var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "delete saved network envs",
-	Run: func(cmd *cobra.Command, args []string) {
-		s, err := state.LoadStateFromFile()
-		if err != nil {
-			log.Fatalln(err)
-			return
-		}
+var (
+	deleteVerbose bool
 
-		s.DisposeResources()
-	},
-}
+	deleteCmd = &cobra.Command{
+		Use:   "delete",
+		Short: "delete saved network envs",
+		Run: func(cmd *cobra.Command, args []string) {
+			s, err := state.LoadStateFromFile()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error()+"\n")
+				return
+			}
+
+			s.DisposeResources(deleteVerbose)
+		},
+	}
+)
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
+	deleteCmd.Flags().BoolVarP(&deleteVerbose, "verbose", "v", false, "verbosity")
 }

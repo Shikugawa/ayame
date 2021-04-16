@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os/exec"
 
 	"github.com/Shikugawa/ayame/pkg/config"
 	"go.uber.org/multierr"
@@ -29,18 +28,16 @@ type Veth struct {
 	Attached bool   `json:"attached"`
 }
 
-func (v *Veth) Attach(ns *Namespace, cidr *net.IPNet) (*AttachedDevice, error) {
+func (v *Veth) Attach(ns *Namespace, cidr *net.IPNet, verbose bool) (*AttachedDevice, error) {
 	if v.Attached {
 		return nil, fmt.Errorf("%s is already attached", v.Name)
 	}
 
-	cmd := exec.Command("ip", "link", "set", v.Name, "netns", ns.Name)
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to attach device %s to ns %s", v.Name, ns.Name)
+	if err := RunIpLinkSetNamespaces(v.Name, ns.Name, verbose); err != nil {
+		return nil, err
 	}
 
-	cmd = exec.Command("ip", "netns", "exec", ns.Name, "ip", "addr", "add", cidr.String(), "dev", v.Name)
-	if err := cmd.Run(); err != nil {
+	if err := RunAssignCidrToNamespaces(v.Name, ns.Name, cidr, verbose); err != nil {
 		return nil, fmt.Errorf("failed to assign CIDR %s to ns %s on %s", cidr.String(), ns.Name, v.Name)
 	}
 
@@ -54,28 +51,27 @@ type VethPair struct {
 	Active bool  `yaml:"is_active"`
 }
 
-func CreateVethPair(conf config.Veth) (*VethPair, error) {
+func CreateVethPair(conf config.Veth, verbose bool) (*VethPair, error) {
 	pair := VethPair{
 		Left:   &Veth{Name: conf.Left, Attached: false},
 		Right:  &Veth{Name: conf.Right, Attached: false},
 		Active: false,
 	}
 
-	if err := pair.Create(); err != nil {
+	if err := pair.Create(verbose); err != nil {
 		return &pair, err
 	}
 
 	return &pair, nil
 }
 
-func (v *VethPair) Create() error {
+func (v *VethPair) Create(verbose bool) error {
 	if v.Active {
 		return fmt.Errorf("%s@%s is already created", v.Left.Name, v.Right.Name)
 	}
 
-	cmd := exec.Command("ip", "link", "add", "name", v.Left.Name, "type", "veth", "peer", v.Right.Name)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to create veth name %s@%s: %s", v.Left.Name, v.Right.Name, err)
+	if err := RunIpLinkCreate(v.Left.Name, v.Right.Name, verbose); err != nil {
+		return err
 	}
 
 	v.Active = true
@@ -84,27 +80,32 @@ func (v *VethPair) Create() error {
 	return nil
 }
 
-func (v *VethPair) Destroy() error {
+func (v *VethPair) Destroy(verbose bool) error {
 	if !v.Active {
 		return fmt.Errorf("%s@%s doesn't exist", v.Left.Name, v.Right.Name)
 	}
 
-	var cmd *exec.Cmd
+	deleted := false
+
 	if !v.Left.Attached {
-		cmd = exec.Command("ip", "link", "delete", v.Left.Name)
+		if err := RunIpLinkDelete(v.Left.Name, verbose); err != nil {
+			return err
+		}
+
+		deleted = true
 	}
 
-	if cmd == nil && !v.Right.Attached {
-		cmd = exec.Command("ip", "link", "delete", v.Right.Name)
+	if !deleted && !v.Right.Attached {
+		if err := RunIpLinkDelete(v.Right.Name, verbose); err != nil {
+			return err
+		}
+
+		deleted = true
 	}
 
-	if cmd == nil {
+	if !deleted {
 		log.Printf("veth-pair %s@%s is invisible from host", v.Left.Name, v.Right.Name)
 		return nil
-	}
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to delete device %s@%s: %s", v.Left.Name, v.Right.Name, err)
 	}
 
 	v.Active = false
@@ -113,11 +114,11 @@ func (v *VethPair) Destroy() error {
 	return nil
 }
 
-func InitVethPairs(conf []config.Veth) ([]*VethPair, error) {
+func InitVethPairs(conf []config.Veth, verbose bool) ([]*VethPair, error) {
 	var activeVethPairs []*VethPair
 
 	for _, c := range conf {
-		vethPair, err := CreateVethPair(c)
+		vethPair, err := CreateVethPair(c, verbose)
 		activeVethPairs = append(activeVethPairs, vethPair)
 
 		if err != nil {
@@ -128,10 +129,10 @@ func InitVethPairs(conf []config.Veth) ([]*VethPair, error) {
 	return activeVethPairs, nil
 }
 
-func CleanupAllVethPairs(vps *[]*VethPair) error {
+func CleanupAllVethPairs(vps *[]*VethPair, verbose bool) error {
 	var allerr error
 	for _, v := range *vps {
-		if err := v.Destroy(); err != nil {
+		if err := v.Destroy(verbose); err != nil {
 			allerr = multierr.Append(allerr, err)
 		}
 	}

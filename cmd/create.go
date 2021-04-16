@@ -14,17 +14,18 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
+	"os"
 
 	"github.com/Shikugawa/ayame/pkg/config"
 	"github.com/Shikugawa/ayame/pkg/state"
 	"github.com/spf13/cobra"
 )
 
-// createCmd represents the create command
 var (
-	configPath string
+	configPath    string
+	createVerbose bool
 
 	createCmd = &cobra.Command{
 		Use:   "create",
@@ -32,22 +33,22 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			bytes, err := ioutil.ReadFile(configPath)
 			if err != nil {
-				log.Fatalln(err)
+				fmt.Fprintf(os.Stderr, err.Error()+"\n")
 				return
 			}
 
 			cfg, err := config.ParseConfig(bytes)
 			if err != nil {
-				log.Fatalln(err)
+				fmt.Fprintf(os.Stderr, err.Error()+"\n")
 				return
 			}
 
-			s, err := state.InitAll(cfg)
+			s, err := state.InitAll(cfg, createVerbose)
 
-			log.Println("succeded to initialize")
+			fmt.Println("succeded to initialize")
 
 			if err := s.SaveState(); err != nil {
-				log.Fatalln(err)
+				fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			}
 		},
 	}
@@ -57,5 +58,6 @@ func init() {
 	rootCmd.AddCommand(createCmd)
 
 	createCmd.Flags().StringVarP(&configPath, "config", "c", "", "config path")
+	createCmd.Flags().BoolVarP(&createVerbose, "verbose", "v", false, "verbosity")
 	createCmd.MarkFlagRequired("config")
 }

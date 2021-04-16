@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os/exec"
 
 	"github.com/Shikugawa/ayame/pkg/config"
 	"go.uber.org/multierr"
@@ -35,15 +34,14 @@ type Namespace struct {
 	Active  bool              `json:"is_active"`
 }
 
-func InitNamespace(conf config.Namespace, pairs *[]*VethPair) (*Namespace, error) {
+func InitNamespace(conf config.Namespace, pairs *[]*VethPair, verbose bool) (*Namespace, error) {
 	ns := Namespace{
 		Name:   conf.Name,
 		Active: false,
 	}
 
-	cmd := exec.Command("ip", "netns", "add", ns.Name)
-	if err := cmd.Run(); err != nil {
-		return &ns, fmt.Errorf("failed to create ns %s", ns.Name)
+	if err := RunIpNetnsAdd(ns.Name, verbose); err != nil {
+		return &ns, err
 	}
 
 	for _, dev := range conf.Device {
@@ -56,7 +54,7 @@ func InitNamespace(conf config.Namespace, pairs *[]*VethPair) (*Namespace, error
 					return &ns, fmt.Errorf("failed to parse CIDR %s: %s", dev.Cidr, err)
 				}
 
-				attachedDevice, err = pair.Left.Attach(&ns, ipNet)
+				attachedDevice, err = pair.Left.Attach(&ns, ipNet, verbose)
 				if err != nil {
 					return &ns, err
 				}
@@ -73,7 +71,7 @@ func InitNamespace(conf config.Namespace, pairs *[]*VethPair) (*Namespace, error
 					return &ns, fmt.Errorf("failed to parse CIDR %s: %s", dev.Cidr, err)
 				}
 
-				attachedDevice, err = pair.Right.Attach(&ns, ipNet)
+				attachedDevice, err = pair.Right.Attach(&ns, ipNet, verbose)
 				if err != nil {
 					return &ns, err
 				}
@@ -98,15 +96,14 @@ func InitNamespace(conf config.Namespace, pairs *[]*VethPair) (*Namespace, error
 	return &ns, nil
 }
 
-func (n *Namespace) Destroy() error {
+func (n *Namespace) Destroy(verbose bool) error {
 	if !n.Active {
 		log.Printf("%s is already inactive", n.Name)
 		return nil
 	}
 
-	cmd := exec.Command("ip", "netns", "delete", n.Name)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to delete ns %s", n.Name)
+	if err := RunIpNetnsDelete(n.Name, verbose); err != nil {
+		return err
 	}
 
 	for _, dev := range n.Devices {
@@ -117,11 +114,11 @@ func (n *Namespace) Destroy() error {
 	return nil
 }
 
-func InitNamespaces(conf []config.Namespace, pairs *[]*VethPair) ([]*Namespace, error) {
+func InitNamespaces(conf []config.Namespace, pairs *[]*VethPair, verbose bool) ([]*Namespace, error) {
 	var activeNamespaces []*Namespace
 
 	for _, c := range conf {
-		ns, err := InitNamespace(c, pairs)
+		ns, err := InitNamespace(c, pairs, verbose)
 		activeNamespaces = append(activeNamespaces, ns)
 
 		if err != nil {
@@ -132,10 +129,10 @@ func InitNamespaces(conf []config.Namespace, pairs *[]*VethPair) ([]*Namespace, 
 	return activeNamespaces, nil
 }
 
-func CleanupAllNamespaces(nss *[]*Namespace) error {
+func CleanupAllNamespaces(nss *[]*Namespace, verbose bool) error {
 	var allerr error
 	for _, n := range *nss {
-		if err := n.Destroy(); err != nil {
+		if err := n.Destroy(verbose); err != nil {
 			allerr = multierr.Append(allerr, err)
 		}
 	}
