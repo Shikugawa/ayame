@@ -13,10 +13,30 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
+package cmd
 
-import "github.com/Shikugawa/ayame/cmd"
+import (
+	"log"
 
-func main() {
-	cmd.Execute()
+	"github.com/Shikugawa/ayame/pkg/state"
+	"github.com/spf13/cobra"
+)
+
+// deleteCmd represents the delete command
+var deleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "delete saved network envs",
+	Run: func(cmd *cobra.Command, args []string) {
+		s, err := state.LoadStateFromFile()
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+
+		s.DisposeResources()
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(deleteCmd)
 }

@@ -1,20 +1,27 @@
-package net
+package network
 
 import (
 	"fmt"
-	"github.com/Shikugawa/netb/pkg/config"
 	"log"
 	"net"
 	"os/exec"
+
+	"github.com/Shikugawa/ayame/pkg/config"
+	"go.uber.org/multierr"
 )
 
-type Namespace struct {
-	Name    string            `yaml:"name"`
-	Devices []*AttachedDevice `yaml:"devices"`
-	Active  bool              `yaml:"is_active"`
+type AttachedDevice struct {
+	Dev  *Veth  `json:"device"`
+	Cidr string `json:"cidr"`
 }
 
-func InitNamespace(conf config.Namespace, pairs *ActiveVethPairs) (*Namespace, error) {
+type Namespace struct {
+	Name    string            `json:"name"`
+	Devices []*AttachedDevice `json:"devices"`
+	Active  bool              `json:"is_active"`
+}
+
+func InitNamespace(conf config.Namespace, pairs *[]*VethPair) (*Namespace, error) {
 	ns := Namespace{
 		Name:   conf.Name,
 		Active: false,
@@ -28,7 +35,7 @@ func InitNamespace(conf config.Namespace, pairs *ActiveVethPairs) (*Namespace, e
 	for _, dev := range conf.Device {
 		var attachedDevice *AttachedDevice
 
-		for _, pair := range pairs.VethPairs {
+		for _, pair := range *pairs {
 			if dev.Name == pair.Left.Name && !pair.Left.Attached {
 				_, ipNet, err := net.ParseCIDR(dev.Cidr)
 				if err != nil {
@@ -41,7 +48,7 @@ func InitNamespace(conf config.Namespace, pairs *ActiveVethPairs) (*Namespace, e
 				}
 
 				log.Printf("succeeded to attach CIDR %s to dev %s on ns %s",
-					attachedDevice.Cidr.String(), attachedDevice.Dev.Name, ns.Name)
+					attachedDevice.Cidr, attachedDevice.Dev.Name, ns.Name)
 
 				break
 			}
@@ -58,7 +65,7 @@ func InitNamespace(conf config.Namespace, pairs *ActiveVethPairs) (*Namespace, e
 				}
 
 				log.Printf("succeeded to attach CIDR %s to dev %s on ns %s",
-					attachedDevice.Cidr.String(), attachedDevice.Dev.Name, ns.Name)
+					attachedDevice.Cidr, attachedDevice.Dev.Name, ns.Name)
 
 				break
 			}
@@ -96,30 +103,27 @@ func (n *Namespace) Destroy() error {
 	return nil
 }
 
-type ActiveNamespaces struct {
-	namespaces []*Namespace `yaml:"namespaces"`
-}
-
-func InitNamespaces(conf []config.Namespace, pairs *ActiveVethPairs) (*ActiveNamespaces, error) {
-	activeNamespaces := ActiveNamespaces{}
+func InitNamespaces(conf []config.Namespace, pairs *[]*VethPair) ([]*Namespace, error) {
+	var activeNamespaces []*Namespace
 
 	for _, c := range conf {
 		ns, err := InitNamespace(c, pairs)
-		activeNamespaces.namespaces = append(activeNamespaces.namespaces, ns)
+		activeNamespaces = append(activeNamespaces, ns)
 
 		if err != nil {
-			return &activeNamespaces, err
+			return activeNamespaces, err
 		}
 	}
 
-	return &activeNamespaces, nil
+	return activeNamespaces, nil
 }
 
-func (a *ActiveNamespaces) Cleanup() {
-	for _, n := range a.namespaces {
+func CleanupAllNamespaces(nss *[]*Namespace) error {
+	var allerr error
+	for _, n := range *nss {
 		if err := n.Destroy(); err != nil {
-			log.Println(err)
-			continue
+			allerr = multierr.Append(allerr, err)
 		}
 	}
+	return allerr
 }

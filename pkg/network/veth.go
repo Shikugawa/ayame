@@ -1,21 +1,18 @@
-package net
+package network
 
 import (
 	"fmt"
-	"github.com/Shikugawa/netb/pkg/config"
 	"log"
 	"net"
 	"os/exec"
+
+	"github.com/Shikugawa/ayame/pkg/config"
+	"go.uber.org/multierr"
 )
 
 type Veth struct {
-	Name     string `yaml:"name""`
-	Attached bool   `yaml:"attached"`
-}
-
-type AttachedDevice struct {
-	Dev  *Veth      `yaml:"device"`
-	Cidr *net.IPNet `yaml:cidr`
+	Name     string `json:"name"`
+	Attached bool   `json:"attached"`
 }
 
 func (v *Veth) Attach(ns *Namespace, cidr *net.IPNet) (*AttachedDevice, error) {
@@ -34,7 +31,7 @@ func (v *Veth) Attach(ns *Namespace, cidr *net.IPNet) (*AttachedDevice, error) {
 	}
 
 	v.Attached = true
-	return &AttachedDevice{Dev: v, Cidr: cidr}, nil
+	return &AttachedDevice{Dev: v, Cidr: cidr.String()}, nil
 }
 
 type VethPair struct {
@@ -88,7 +85,7 @@ func (v *VethPair) Destroy() error {
 	}
 
 	if cmd == nil {
-		log.Printf("veth-pair %s@%s is invisible from host")
+		log.Printf("veth-pair %s@%s is invisible from host", v.Left.Name, v.Right.Name)
 		return nil
 	}
 
@@ -102,30 +99,27 @@ func (v *VethPair) Destroy() error {
 	return nil
 }
 
-type ActiveVethPairs struct {
-	VethPairs []*VethPair
-}
-
-func InitVethPairs(conf []config.Veth) (*ActiveVethPairs, error) {
-	activeVethPairs := ActiveVethPairs{}
+func InitVethPairs(conf []config.Veth) ([]*VethPair, error) {
+	var activeVethPairs []*VethPair
 
 	for _, c := range conf {
 		vethPair, err := CreateVethPair(c)
-		activeVethPairs.VethPairs = append(activeVethPairs.VethPairs, vethPair)
+		activeVethPairs = append(activeVethPairs, vethPair)
 
 		if err != nil {
-			return &activeVethPairs, err
+			return activeVethPairs, err
 		}
 	}
 
-	return &activeVethPairs, nil
+	return activeVethPairs, nil
 }
 
-func (a *ActiveVethPairs) Cleanup() {
-	for _, v := range a.VethPairs {
+func CleanupAllVethPairs(vps *[]*VethPair) error {
+	var allerr error
+	for _, v := range *vps {
 		if err := v.Destroy(); err != nil {
-			log.Println(err)
-			continue
+			allerr = multierr.Append(allerr, err)
 		}
 	}
+	return allerr
 }
