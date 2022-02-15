@@ -20,24 +20,31 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Veth struct {
-	Left  string `yaml:"left"`
-	Right string `yaml:"right"`
-}
-
-type Device struct {
+type NamespaceDeviceConfig struct {
 	Name string `yaml:"name"`
 	Cidr string `yaml:"cidr"`
 }
 
-type Namespace struct {
-	Name   string   `yaml:"name"`
-	Device []Device `yaml:"device"`
+type NamespaceConfig struct {
+	Name    string                  `yaml:"name"`
+	Devices []NamespaceDeviceConfig `yaml:"devices"`
+}
+
+type LinkMode int
+
+const (
+	DirectLink LinkMode = iota
+	Bridge
+)
+
+type LinkConfig struct {
+	LinkMode LinkMode
+	Name     string
 }
 
 type Config struct {
-	Veth      []Veth      `yaml:"veth"`
-	Namespace []Namespace `yaml:"namespace"`
+	Links      []LinkConfig      `yaml:"links"`
+	Namespaces []NamespaceConfig `yaml:"namespaces"`
 }
 
 func ParseConfig(bytes []byte) (*Config, error) {
@@ -45,5 +52,10 @@ func ParseConfig(bytes []byte) (*Config, error) {
 	if err := yaml.Unmarshal(bytes, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %s", err)
 	}
+
+	if err := ValidateNamespace(cfg.Namespaces, cfg.Links); err != nil {
+		return nil, err
+	}
+
 	return &cfg, nil
 }

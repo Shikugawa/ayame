@@ -17,52 +17,37 @@ package network
 import (
 	"fmt"
 	"log"
-	"net"
-
-	"github.com/Shikugawa/ayame/pkg/config"
-	"go.uber.org/multierr"
 )
+
+type VethConfig struct {
+	Name string `yaml:"name"`
+}
 
 type Veth struct {
 	Name     string `json:"name"`
 	Attached bool   `json:"attached"`
 }
 
-func (v *Veth) Attach(ns *Namespace, cidr *net.IPNet, verbose bool) (*AttachedDevice, error) {
-	if v.Attached {
-		return nil, fmt.Errorf("%s is already attached", v.Name)
-	}
-
-	if err := RunIpLinkSetNamespaces(v.Name, ns.Name, verbose); err != nil {
-		return nil, err
-	}
-
-	if err := RunAssignCidrToNamespaces(v.Name, ns.Name, cidr, verbose); err != nil {
-		return nil, fmt.Errorf("failed to assign CIDR %s to ns %s on %s", cidr.String(), ns.Name, v.Name)
-	}
-
-	v.Attached = true
-	return &AttachedDevice{Dev: v, Cidr: cidr.String()}, nil
-}
-
 type VethPair struct {
-	Left   *Veth `yaml:"veth_left"`
-	Right  *Veth `yaml:"veth_right"`
-	Active bool  `yaml:"is_active"`
+	Name   string `json:"name"`
+	Left   *Veth  `json:"veth_left"`
+	Right  *Veth  `json:"veth_right"`
+	Active bool   `json:"is_active"`
 }
 
-func CreateVethPair(conf config.Veth, verbose bool) (*VethPair, error) {
-	pair := VethPair{
-		Left:   &Veth{Name: conf.Left, Attached: false},
-		Right:  &Veth{Name: conf.Right, Attached: false},
+func InitVethPair(config VethConfig, verbose bool) (*VethPair, error) {
+	pair := &VethPair{
+		Name:   config.Name,
+		Left:   &Veth{Name: config.Name + "-left", Attached: false},
+		Right:  &Veth{Name: config.Name + "-right", Attached: false},
 		Active: false,
 	}
 
 	if err := pair.Create(verbose); err != nil {
-		return &pair, err
+		return pair, err
 	}
 
-	return &pair, nil
+	return pair, nil
 }
 
 func (v *VethPair) Create(verbose bool) error {
@@ -112,29 +97,4 @@ func (v *VethPair) Destroy(verbose bool) error {
 	log.Printf("succeeded to delete %s@%s", v.Left.Name, v.Right.Name)
 
 	return nil
-}
-
-func InitVethPairs(conf []config.Veth, verbose bool) ([]*VethPair, error) {
-	var activeVethPairs []*VethPair
-
-	for _, c := range conf {
-		vethPair, err := CreateVethPair(c, verbose)
-		activeVethPairs = append(activeVethPairs, vethPair)
-
-		if err != nil {
-			return activeVethPairs, err
-		}
-	}
-
-	return activeVethPairs, nil
-}
-
-func CleanupAllVethPairs(vps *[]*VethPair, verbose bool) error {
-	var allerr error
-	for _, v := range *vps {
-		if err := v.Destroy(verbose); err != nil {
-			allerr = multierr.Append(allerr, err)
-		}
-	}
-	return allerr
 }

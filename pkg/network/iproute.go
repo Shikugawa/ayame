@@ -16,7 +16,6 @@ package network
 
 import (
 	"fmt"
-	"net"
 	"os/exec"
 )
 
@@ -62,15 +61,15 @@ func RunIpLinkSetNamespaces(ifname string, nsname string, verbose bool) error {
 	return nil
 }
 
-func RunAssignCidrToNamespaces(ifname string, nsname string, cidr *net.IPNet, verbose bool) error {
-	cmd := exec.Command("ip", "netns", "exec", nsname, "ip", "addr", "add", cidr.String(), "dev", ifname)
+func RunAssignCidrToNamespaces(ifname string, nsname string, cidr string, verbose bool) error {
+	cmd := exec.Command("ip", "netns", "exec", nsname, "ip", "addr", "add", cidr, "dev", ifname)
 
 	if verbose {
 		fmt.Println(cmd.String())
 	}
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to assign CIDR %s to ns %s on %s", cidr.String(), nsname, ifname)
+		return fmt.Errorf("failed to assign CIDR %s to ns %s on %s", cidr, nsname, ifname)
 	}
 
 	return nil

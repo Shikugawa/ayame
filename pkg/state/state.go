@@ -26,8 +26,8 @@ import (
 )
 
 type State struct {
-	VethPairs  []*network.VethPair  `json:"vethpairs"`
-	Namespaces []*network.Namespace `json:"namespaces"`
+	Links      []network.Link      `json:"links"`
+	Namespaces []network.Namespace `json:"namespaces"`
 }
 
 var statePath = os.Getenv("HOME") + "/.ayame"
@@ -42,20 +42,20 @@ func InitAll(cfg *config.Config, currState *State, verbose bool) (*State, error)
 		log.Println("existing resources destroyed")
 	}
 
-	pairs, err := network.InitVethPairs(cfg.Veth, verbose)
+	links, err := network.InitLinks(cfg.Links, verbose)
 	if err != nil {
-		network.CleanupAllVethPairs(&pairs, verbose)
+		network.CleanupLinks(links, verbose)
 		return nil, err
 	}
 
-	ns, err := network.InitNamespaces(cfg.Namespace, &pairs, verbose)
+	ns, err := network.InitNamespaces(cfg.Namespaces, links, verbose)
 	if err != nil {
-		network.CleanupAllVethPairs(&pairs, verbose)
-		network.CleanupAllNamespaces(&ns, verbose)
+		network.CleanupLinks(links, verbose)
+		network.CleanupNamespaces(ns, verbose)
 		return nil, err
 	}
 
-	return &State{VethPairs: pairs, Namespaces: ns}, nil
+	return &State{Links: links, Namespaces: ns}, nil
 }
 
 func LoadStateFromFile() (*State, error) {
@@ -94,10 +94,10 @@ func (s *State) SaveState() error {
 }
 
 func (s *State) DisposeResources(verbose bool) error {
-	if err := network.CleanupAllVethPairs(&s.VethPairs, verbose); err != nil {
+	if err := network.CleanupLinks(s.Links, verbose); err != nil {
 		return err
 	}
-	if err := network.CleanupAllNamespaces(&s.Namespaces, verbose); err != nil {
+	if err := network.CleanupNamespaces(s.Namespaces, verbose); err != nil {
 		return err
 	}
 	if err := os.Remove(statePath + "/" + stateFileName); err != nil {

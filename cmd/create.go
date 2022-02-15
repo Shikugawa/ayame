@@ -45,8 +45,11 @@ var (
 
 			st, _ := state.LoadStateFromFile()
 			s, err := state.InitAll(cfg, st, createVerbose)
-
-			fmt.Println("succeded to initialize")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error()+"\n")
+				return
+			}
+			fmt.Println("succeeded to initialize")
 
 			if err := s.SaveState(); err != nil {
 				fmt.Fprintf(os.Stderr, err.Error()+"\n")
