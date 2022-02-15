@@ -4,7 +4,7 @@ import "fmt"
 
 func ValidateNamespace(configs []NamespaceConfig, linkConfigs []LinkConfig) error {
 	// Unique Name
-	var tmp map[string]bool
+	tmp := make(map[string]bool)
 	for _, cfg := range configs {
 		if _, ok := tmp[cfg.Name]; ok {
 			return fmt.Errorf("namespace name must be unique")

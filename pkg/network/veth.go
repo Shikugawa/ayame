@@ -16,7 +16,8 @@ package network
 
 import (
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type VethConfig struct {
@@ -35,7 +36,7 @@ type VethPair struct {
 	Active bool   `json:"is_active"`
 }
 
-func InitVethPair(config VethConfig, verbose bool) (*VethPair, error) {
+func InitVethPair(config VethConfig) (*VethPair, error) {
 	pair := &VethPair{
 		Name:   config.Name,
 		Left:   &Veth{Name: config.Name + "-left", Attached: false},
@@ -43,29 +44,29 @@ func InitVethPair(config VethConfig, verbose bool) (*VethPair, error) {
 		Active: false,
 	}
 
-	if err := pair.Create(verbose); err != nil {
+	if err := pair.Create(); err != nil {
 		return pair, err
 	}
 
 	return pair, nil
 }
 
-func (v *VethPair) Create(verbose bool) error {
+func (v *VethPair) Create() error {
 	if v.Active {
 		return fmt.Errorf("%s@%s is already created", v.Left.Name, v.Right.Name)
 	}
 
-	if err := RunIpLinkCreate(v.Left.Name, v.Right.Name, verbose); err != nil {
+	if err := RunIpLinkCreate(v.Left.Name, v.Right.Name); err != nil {
 		return err
 	}
 
 	v.Active = true
-	log.Printf("succeeded to create %s@%s", v.Left.Name, v.Right.Name)
+	log.Infof("succeeded to create %s@%s", v.Left.Name, v.Right.Name)
 
 	return nil
 }
 
-func (v *VethPair) Destroy(verbose bool) error {
+func (v *VethPair) Destroy() error {
 	if !v.Active {
 		return fmt.Errorf("%s@%s doesn't exist", v.Left.Name, v.Right.Name)
 	}
@@ -73,7 +74,7 @@ func (v *VethPair) Destroy(verbose bool) error {
 	deleted := false
 
 	if !v.Left.Attached {
-		if err := RunIpLinkDelete(v.Left.Name, verbose); err != nil {
+		if err := RunIpLinkDelete(v.Left.Name); err != nil {
 			return err
 		}
 
@@ -81,7 +82,7 @@ func (v *VethPair) Destroy(verbose bool) error {
 	}
 
 	if !deleted && !v.Right.Attached {
-		if err := RunIpLinkDelete(v.Right.Name, verbose); err != nil {
+		if err := RunIpLinkDelete(v.Right.Name); err != nil {
 			return err
 		}
 
@@ -89,12 +90,12 @@ func (v *VethPair) Destroy(verbose bool) error {
 	}
 
 	if !deleted {
-		log.Printf("veth-pair %s@%s is invisible from host", v.Left.Name, v.Right.Name)
+		log.Infof("veth-pair %s@%s is invisible from host", v.Left.Name, v.Right.Name)
 		return nil
 	}
 
 	v.Active = false
-	log.Printf("succeeded to delete %s@%s", v.Left.Name, v.Right.Name)
+	log.Infof("succeeded to delete %s@%s", v.Left.Name, v.Right.Name)
 
 	return nil
 }

@@ -23,8 +23,6 @@ import (
 
 // deleteCmd represents the delete command
 var (
-	deleteVerbose bool
-
 	deleteCmd = &cobra.Command{
 		Use:   "delete",
 		Short: "delete saved network envs",
@@ -35,12 +33,11 @@ var (
 				return
 			}
 
-			s.DisposeResources(deleteVerbose)
+			s.DisposeResources()
 		},
 	}
 )
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.Flags().BoolVarP(&deleteVerbose, "verbose", "v", false, "verbosity")
 }

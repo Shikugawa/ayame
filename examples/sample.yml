@@ -1,10 +1,10 @@
 namespaces:
   - name: ns1
-    links:
+    devices:
       - name: veth1
         cidr: 192.168.100.10/24
   - name: ns2
-    links:
+    devices:
       - name: veth1
         cidr: 192.168.100.11/24
 

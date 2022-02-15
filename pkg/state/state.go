@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/Shikugawa/ayame/pkg/config"
@@ -26,37 +25,13 @@ import (
 )
 
 type State struct {
-	Links      []network.Link      `json:"links"`
-	Namespaces []network.Namespace `json:"namespaces"`
+	Links      []network.DirectLink `json:"direct_links"`
+	Namespaces []network.Namespace  `json:"namespaces"`
 }
 
 var statePath = os.Getenv("HOME") + "/.ayame"
 
 const stateFileName = "state.json"
-
-func InitAll(cfg *config.Config, currState *State, verbose bool) (*State, error) {
-	if currState != nil {
-		if err := currState.DisposeResources(verbose); err != nil {
-			return nil, err
-		}
-		log.Println("existing resources destroyed")
-	}
-
-	links, err := network.InitLinks(cfg.Links, verbose)
-	if err != nil {
-		network.CleanupLinks(links, verbose)
-		return nil, err
-	}
-
-	ns, err := network.InitNamespaces(cfg.Namespaces, links, verbose)
-	if err != nil {
-		network.CleanupLinks(links, verbose)
-		network.CleanupNamespaces(ns, verbose)
-		return nil, err
-	}
-
-	return &State{Links: links, Namespaces: ns}, nil
-}
 
 func LoadStateFromFile() (*State, error) {
 	if _, err := os.Stat(statePath + "/" + stateFileName); os.IsNotExist(err) {
@@ -93,11 +68,11 @@ func (s *State) SaveState() error {
 	return nil
 }
 
-func (s *State) DisposeResources(verbose bool) error {
-	if err := network.CleanupLinks(s.Links, verbose); err != nil {
-		return err
-	}
-	if err := network.CleanupNamespaces(s.Namespaces, verbose); err != nil {
+func (s *State) DisposeResources() error {
+	// if err := network.CleanupLinks(s.Links, verbose); err != nil {
+	// 	return err
+	// }
+	if err := network.CleanupNamespaces(s.Namespaces); err != nil {
 		return err
 	}
 	if err := os.Remove(statePath + "/" + stateFileName); err != nil {
@@ -112,4 +87,29 @@ func (s *State) DumpAll() (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+func InitAll(cfg *config.Config, currState *State) (*State, error) {
+	if currState != nil {
+		if err := currState.DisposeResources(); err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("must destroy existing resources")
+	}
+
+	links, err := network.InitLinks(cfg.Links)
+	if err != nil {
+		network.CleanupLinks(links)
+		return nil, err
+	}
+
+	ns, err := network.InitNamespaces(cfg.Namespaces, links)
+	if err != nil {
+		network.CleanupLinks(links)
+		network.CleanupNamespaces(ns)
+		return nil, err
+	}
+
+	// TODO: enable to save link state
+	return &State{Namespaces: ns}, nil
 }

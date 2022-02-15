@@ -17,14 +17,13 @@ package network
 import (
 	"fmt"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func RunIpLinkCreate(left string, right string, verbose bool) error {
+func RunIpLinkCreate(left string, right string) error {
 	cmd := exec.Command("ip", "link", "add", "name", left, "type", "veth", "peer", right)
-
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infoln("execute ", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create veth name %s@%s: %s", left, right, err)
@@ -33,12 +32,9 @@ func RunIpLinkCreate(left string, right string, verbose bool) error {
 	return nil
 }
 
-func RunIpLinkDelete(name string, verbose bool) error {
+func RunIpLinkDelete(name string) error {
 	cmd := exec.Command("ip", "link", "delete", name)
-
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infoln("execute ", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to delete device %s: %s", name, err)
@@ -47,12 +43,9 @@ func RunIpLinkDelete(name string, verbose bool) error {
 	return nil
 }
 
-func RunIpLinkSetNamespaces(ifname string, nsname string, verbose bool) error {
+func RunIpLinkSetNamespaces(ifname string, nsname string) error {
 	cmd := exec.Command("ip", "link", "set", ifname, "netns", nsname)
-
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infoln("execute ", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to attach device %s to ns %s", ifname, nsname)
@@ -61,12 +54,9 @@ func RunIpLinkSetNamespaces(ifname string, nsname string, verbose bool) error {
 	return nil
 }
 
-func RunAssignCidrToNamespaces(ifname string, nsname string, cidr string, verbose bool) error {
+func RunAssignCidrToNamespaces(ifname string, nsname string, cidr string) error {
 	cmd := exec.Command("ip", "netns", "exec", nsname, "ip", "addr", "add", cidr, "dev", ifname)
-
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infoln("execute ", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to assign CIDR %s to ns %s on %s", cidr, nsname, ifname)
@@ -75,12 +65,9 @@ func RunAssignCidrToNamespaces(ifname string, nsname string, cidr string, verbos
 	return nil
 }
 
-func RunIpNetnsAdd(nsname string, verbose bool) error {
+func RunIpNetnsAdd(nsname string) error {
 	cmd := exec.Command("ip", "netns", "add", nsname)
-
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infoln("execute ", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create ns %s", nsname)
@@ -89,12 +76,9 @@ func RunIpNetnsAdd(nsname string, verbose bool) error {
 	return nil
 }
 
-func RunIpNetnsDelete(nsname string, verbose bool) error {
+func RunIpNetnsDelete(nsname string) error {
 	cmd := exec.Command("ip", "netns", "delete", nsname)
-
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infoln("execute ", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to delete ns %s", nsname)

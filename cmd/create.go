@@ -24,8 +24,7 @@ import (
 )
 
 var (
-	configPath    string
-	createVerbose bool
+	configPath string
 
 	createCmd = &cobra.Command{
 		Use:   "create",
@@ -44,7 +43,7 @@ var (
 			}
 
 			st, _ := state.LoadStateFromFile()
-			s, err := state.InitAll(cfg, st, createVerbose)
+			s, err := state.InitAll(cfg, st)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, err.Error()+"\n")
 				return
@@ -62,6 +61,5 @@ func init() {
 	rootCmd.AddCommand(createCmd)
 
 	createCmd.Flags().StringVarP(&configPath, "config", "c", "", "config path")
-	createCmd.Flags().BoolVarP(&createVerbose, "verbose", "v", false, "verbosity")
 	createCmd.MarkFlagRequired("config")
 }

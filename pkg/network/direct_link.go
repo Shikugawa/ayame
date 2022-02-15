@@ -11,12 +11,12 @@ type DirectLink struct {
 	busy bool     `json:"busy"`
 }
 
-func InitDirectLink(config config.LinkConfig, verbose bool) (*DirectLink, error) {
+func InitDirectLink(config config.LinkConfig) (*DirectLink, error) {
 	conf := VethConfig{
 		Name: config.Name,
 	}
 
-	pair, err := InitVethPair(conf, verbose)
+	pair, err := InitVethPair(conf)
 	if err != nil {
 		return nil, err
 	}
@@ -27,23 +27,23 @@ func InitDirectLink(config config.LinkConfig, verbose bool) (*DirectLink, error)
 	}, nil
 }
 
-func (d *DirectLink) Destroy(verbose bool) error {
+func (d *DirectLink) Destroy() error {
 	if !d.busy {
 		return fmt.Errorf("%s is not busy\n", d.pair.Name)
 	}
 
-	return d.pair.Destroy(verbose)
+	return d.pair.Destroy()
 }
 
-func (d *DirectLink) CreateLink(left Attacheable, right Attacheable, verbose bool) error {
+func (d *DirectLink) CreateLink(left Attacheable, right Attacheable) error {
 	if d.busy {
 		return fmt.Errorf("%s has been already busy\n", d.pair.Name)
 	}
-	if err := left.Attach(d.pair.Left, verbose); err != nil {
+	if err := left.Attach(d.pair.Left); err != nil {
 		return err
 	}
 
-	if err := right.Attach(d.pair.Right, verbose); err != nil {
+	if err := right.Attach(d.pair.Right); err != nil {
 		return err
 	}
 

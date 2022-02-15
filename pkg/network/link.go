@@ -8,21 +8,21 @@ import (
 )
 
 type Attacheable interface {
-	Attach(*Veth, bool) error
+	Attach(*Veth) error
 }
 
 type Link interface {
-	Destroy(verbose bool) error
-	CreateLink(left Attacheable, right Attacheable, verbose bool) error
+	Destroy() error
+	CreateLink(left Attacheable, right Attacheable) error
 	Name() string
 }
 
-func InitLinks(confs []config.LinkConfig, verbose bool) ([]Link, error) {
+func InitLinks(confs []config.LinkConfig) ([]Link, error) {
 	var links []Link
 
 	for _, conf := range confs {
 		if conf.LinkMode == config.DirectLink {
-			link, err := InitDirectLink(conf, verbose)
+			link, err := InitDirectLink(conf)
 			if err != nil {
 				return nil, err
 			}
@@ -35,10 +35,10 @@ func InitLinks(confs []config.LinkConfig, verbose bool) ([]Link, error) {
 	return links, nil
 }
 
-func CleanupLinks(links []Link, verbose bool) error {
+func CleanupLinks(links []Link) error {
 	var allerr error
 	for _, link := range links {
-		if err := link.Destroy(verbose); err != nil {
+		if err := link.Destroy(); err != nil {
 			allerr = multierr.Append(allerr, err)
 		}
 	}
