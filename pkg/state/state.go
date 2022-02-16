@@ -27,6 +27,7 @@ import (
 
 type State struct {
 	DirectLinks []*network.DirectLink `json:"direct_links"`
+	Bridges     []*network.Bridge     `json:"bridges"`
 	Namespaces  []*network.Namespace  `json:"namespaces"`
 }
 
@@ -76,6 +77,9 @@ func (s *State) DisposeResources() error {
 	if err := network.CleanupDirectLinks(s.DirectLinks); err != nil {
 		return err
 	}
+	if err := network.CleanupBridges(s.Bridges); err != nil {
+		return err
+	}
 	if err := network.CleanupNamespaces(s.Namespaces); err != nil {
 		return err
 	}
@@ -94,6 +98,7 @@ func (s *State) DumpAll() (string, error) {
 	return string(b), nil
 }
 
+// TODO: consider error handling
 func InitAll(cfg *config.Config, currState *State) (*State, error) {
 	if currState != nil {
 		return nil, fmt.Errorf("must destroy existing resources")
@@ -102,13 +107,17 @@ func InitAll(cfg *config.Config, currState *State) (*State, error) {
 	// Init links
 	dlinks := network.InitDirectLinks(cfg.Links)
 
+	// Init Bridges
+	brs := network.InitBridges(cfg.Links)
+
 	// Init namespaces
 	ns, err := network.InitNamespaces(cfg.Namespaces, dlinks)
 	if err != nil {
 		network.CleanupDirectLinks(dlinks)
+		network.CleanupBridges(brs)
 		network.CleanupNamespaces(ns)
 		return nil, err
 	}
 
-	return &State{Namespaces: ns, DirectLinks: dlinks}, nil
+	return &State{Namespaces: ns, DirectLinks: dlinks, Bridges: brs}, nil
 }

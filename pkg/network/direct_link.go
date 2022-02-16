@@ -14,9 +14,13 @@ type DirectLink struct {
 	Busy     bool   `json:"busy"`
 }
 
-func InitDirectLink(config *config.LinkConfig) (*DirectLink, error) {
+func InitDirectLink(cfg *config.LinkConfig) (*DirectLink, error) {
+	if cfg.LinkMode != config.ModeDirectLink {
+		return nil, fmt.Errorf("invalid mode")
+	}
+
 	conf := VethConfig{
-		Name: config.Name,
+		Name: cfg.Name,
 	}
 
 	pair, err := InitVethPair(conf)
@@ -26,11 +30,12 @@ func InitDirectLink(config *config.LinkConfig) (*DirectLink, error) {
 
 	return &DirectLink{
 		VethPair: *pair,
-		Name:     config.Name,
+		Name:     cfg.Name,
 		Busy:     false,
 	}, nil
 }
 
+// TODO: consider error handling
 func (d *DirectLink) Destroy() error {
 	if !d.Busy {
 		return fmt.Errorf("%s is not busy\n", d.Name)
@@ -39,6 +44,7 @@ func (d *DirectLink) Destroy() error {
 	return d.VethPair.Destroy()
 }
 
+// TODO: consider error handling
 func (d *DirectLink) CreateLink(left *Namespace, right *Namespace) error {
 	if d.Busy {
 		return fmt.Errorf("%s has been already busy\n", d.Name)

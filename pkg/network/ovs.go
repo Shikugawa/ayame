@@ -3,14 +3,14 @@ package network
 import (
 	"fmt"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func CreateNewBridge(name string, verbose bool) error {
+func CreateNewBridge(name string) error {
 	cmd := exec.Command("ovs-vsctl", "add-br", name)
 
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infof("execute %s", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create bridge %s", name)
@@ -19,12 +19,10 @@ func CreateNewBridge(name string, verbose bool) error {
 	return nil
 }
 
-func DeleteBridge(name string, verbose bool) error {
+func DeleteBridge(name string) error {
 	cmd := exec.Command("ovs-vsctl", "del-br", name)
 
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infof("execute %s", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to delete bridge %s", name)
@@ -33,12 +31,10 @@ func DeleteBridge(name string, verbose bool) error {
 	return nil
 }
 
-func LinkBridge(name string, veth *Veth, verbose bool) error {
+func LinkBridge(name string, veth *Veth) error {
 	cmd := exec.Command("ovs-vsctl", "add-port", name, veth.Name)
 
-	if verbose {
-		fmt.Println(cmd.String())
-	}
+	log.Infof("execute %s", cmd.String())
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed link %s to %s", veth.Name, name)

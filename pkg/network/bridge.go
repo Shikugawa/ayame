@@ -1,71 +1,98 @@
 package network
 
-// import (
-// 	"fmt"
-// 	"log"
+import (
+	"fmt"
 
-// 	"github.com/Shikugawa/ayame/pkg/config"
-// 	"github.com/google/uuid"
-// )
+	"github.com/Shikugawa/ayame/pkg/config"
+	"github.com/google/uuid"
+	"go.uber.org/multierr"
 
-// type Bridge struct {
-// 	Name   string  `yaml:"name"`
-// 	Links  []*Veth `yaml:"links"`
-// 	Active bool    `yaml:"is_active"`
-// }
+	log "github.com/sirupsen/logrus"
+)
 
-// func (b *Bridge) Create(verbose bool) error {
-// 	if b.Active {
-// 		return fmt.Errorf("%s is already created", b.Name)
-// 	}
+type Bridge struct {
+	Name      string      `json:"name"`
+	VethPairs []*VethPair `json:"veth_pairs"`
+}
 
-// 	if err := CreateNewBridge(b.Name, verbose); err != nil {
-// 		return err
-// 	}
+func InitBridge(cfg *config.LinkConfig) (*Bridge, error) {
+	if cfg.LinkMode != config.ModeDirectLink {
+		return nil, fmt.Errorf("invalid mode")
+	}
 
-// 	b.Active = true
-// 	log.Printf("succeeded to create %s", b.Name)
+	if err := CreateNewBridge(cfg.Name); err != nil {
+		return nil, err
+	}
 
-// 	return nil
-// }
+	return &Bridge{
+		Name: cfg.Name,
+	}, nil
+}
 
-// func (b *Bridge) Destroy(verbose bool) error {
-// 	if !b.Active {
-// 		return fmt.Errorf("%s doesn't exist", b.Name)
-// 	}
+// TODO: consider error handling
+func (d *Bridge) Destroy() error {
+	for _, p := range d.VethPairs {
+		if err := p.Destroy(); err != nil {
+			log.Warnf(err.Error())
+		}
+	}
 
-// 	// TODO: unlink
-// 	if err := DeleteBridge(b.Name, verbose); err != nil {
-// 		return err
-// 	}
+	if err := DeleteBridge(d.Name); err != nil {
+		return err
+	}
 
-// 	b.Active = false
-// 	log.Printf("succeeded to delete %s", b.Name)
+	return nil
+}
 
-// 	return nil
-// }
+// TODO: consider error handling
+func (d *Bridge) CreateLink(target *Namespace) error {
+	val, _ := uuid.NewRandom()
+	conf := VethConfig{
+		Name: val.String(),
+	}
 
-// func (b *Bridge) Link(ns *Namespace, verbose bool) error {
-// 	// Create veth pair
-// 	uuid, _ := uuid.NewRandom()
-// 	conf := config.Link{
-// 		Name: fmt.Sprintf("bridge-link-%s", uuid),
-// 	}
+	pair, err := InitVethPair(conf)
+	if err != nil {
+		return err
+	}
 
-// 	if verbose {
-// 		log.Printf("init link of bridge: %s with config as follows: %s", b.Name, conf)
-// 	}
+	if err := target.Attach(&pair.Left); err != nil {
+		return err
+	}
 
-// 	vpair, err := CreateLink(conf, verbose)
-// 	if err != nil {
-// 		return err
-// 	}
+	if err := LinkBridge(d.Name, &pair.Right); err != nil {
+		return err
+	}
 
-// 	if err := LinkBridge(b.Name, vpair.Left, verbose); err != nil {
-// 		return err
-// 	}
+	d.VethPairs = append(d.VethPairs, pair)
+	return nil
+}
 
-// 	// TODO: implement link to namespace
+func InitBridges(links []*config.LinkConfig) []*Bridge {
+	var brs []*Bridge
+	for _, link := range links {
+		if link.LinkMode != config.ModeBridge {
+			continue
+		}
 
-// 	return nil
-// }
+		br, err := InitBridge(link)
+		if err != nil {
+			log.Errorf("failed to init direct link: %s", link.Name)
+			continue
+		}
+
+		brs = append(brs, br)
+	}
+
+	return brs
+}
+
+func CleanupBridges(links []*Bridge) error {
+	var allerr error
+	for _, link := range links {
+		if err := link.Destroy(); err != nil {
+			allerr = multierr.Append(allerr, err)
+		}
+	}
+	return allerr
+}
