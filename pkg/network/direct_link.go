@@ -14,7 +14,7 @@ type DirectLink struct {
 	Busy     bool   `json:"busy"`
 }
 
-func InitDirectLink(cfg *config.LinkConfig) (*DirectLink, error) {
+func InitDirectLink(cfg *config.LinkConfig, dryrun bool) (*DirectLink, error) {
 	if cfg.LinkMode != config.ModeDirectLink {
 		return nil, fmt.Errorf("invalid mode")
 	}
@@ -23,7 +23,7 @@ func InitDirectLink(cfg *config.LinkConfig) (*DirectLink, error) {
 		Name: cfg.Name,
 	}
 
-	pair, err := InitVethPair(conf)
+	pair, err := InitVethPair(conf, dryrun)
 	if err != nil {
 		return nil, err
 	}
@@ -36,25 +36,25 @@ func InitDirectLink(cfg *config.LinkConfig) (*DirectLink, error) {
 }
 
 // TODO: consider error handling
-func (d *DirectLink) Destroy() error {
+func (d *DirectLink) Destroy(dryrun bool) error {
 	if !d.Busy {
 		return fmt.Errorf("%s is not busy\n", d.Name)
 	}
 
-	return d.VethPair.Destroy()
+	return d.VethPair.Destroy(dryrun)
 }
 
 // TODO: consider error handling
-func (d *DirectLink) CreateLink(left *Namespace, right *Namespace) error {
+func (d *DirectLink) CreateLink(left *Namespace, right *Namespace, dryrun bool) error {
 	if d.Busy {
 		return fmt.Errorf("%s has been already busy\n", d.Name)
 	}
 
-	if err := (*left).Attach(&d.VethPair.Left); err != nil {
+	if err := (*left).Attach(&d.VethPair.Left, dryrun); err != nil {
 		return err
 	}
 
-	if err := (*right).Attach(&d.VethPair.Right); err != nil {
+	if err := (*right).Attach(&d.VethPair.Right, dryrun); err != nil {
 		// TODO: add error handling if left succeeded but right failed.
 		return err
 	}
@@ -63,14 +63,14 @@ func (d *DirectLink) CreateLink(left *Namespace, right *Namespace) error {
 	return nil
 }
 
-func InitDirectLinks(links []*config.LinkConfig) []*DirectLink {
+func InitDirectLinks(links []*config.LinkConfig, dryrun bool) []*DirectLink {
 	var dlinks []*DirectLink
 	for _, link := range links {
 		if link.LinkMode != config.ModeDirectLink {
 			continue
 		}
 
-		dlink, err := InitDirectLink(link)
+		dlink, err := InitDirectLink(link, dryrun)
 		if err != nil {
 			log.Errorf("failed to init direct link: %s", link.Name)
 			continue
@@ -82,10 +82,10 @@ func InitDirectLinks(links []*config.LinkConfig) []*DirectLink {
 	return dlinks
 }
 
-func CleanupDirectLinks(links []*DirectLink) error {
+func CleanupDirectLinks(links []*DirectLink, dryrun bool) error {
 	var allerr error
 	for _, link := range links {
-		if err := link.Destroy(); err != nil {
+		if err := link.Destroy(dryrun); err != nil {
 			allerr = multierr.Append(allerr, err)
 		}
 	}

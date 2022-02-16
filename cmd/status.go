@@ -15,7 +15,8 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Shikugawa/ayame/pkg/state"
 	"github.com/spf13/cobra"
@@ -28,13 +29,13 @@ var statusCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		s, err := state.LoadStateFromFile()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
+			log.Errorf(err.Error())
 			return
 		}
 
 		ls, err := s.DumpAll()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
+			log.Errorf(err.Error())
 			return
 		}
 

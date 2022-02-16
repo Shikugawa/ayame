@@ -74,13 +74,13 @@ func (s *State) SaveState() error {
 }
 
 func (s *State) DisposeResources() error {
-	if err := network.CleanupDirectLinks(s.DirectLinks); err != nil {
+	if err := network.CleanupDirectLinks(s.DirectLinks, false); err != nil {
 		return err
 	}
-	if err := network.CleanupBridges(s.Bridges); err != nil {
+	if err := network.CleanupBridges(s.Bridges, false); err != nil {
 		return err
 	}
-	if err := network.CleanupNamespaces(s.Namespaces); err != nil {
+	if err := network.CleanupNamespaces(s.Namespaces, false); err != nil {
 		return err
 	}
 
@@ -99,23 +99,23 @@ func (s *State) DumpAll() (string, error) {
 }
 
 // TODO: consider error handling
-func InitAll(cfg *config.Config, currState *State) (*State, error) {
+func InitAll(cfg *config.Config, currState *State, dryrun bool) (*State, error) {
 	if currState != nil {
 		return nil, fmt.Errorf("must destroy existing resources")
 	}
 
 	// Init links
-	dlinks := network.InitDirectLinks(cfg.Links)
+	dlinks := network.InitDirectLinks(cfg.Links, dryrun)
 
 	// Init Bridges
-	brs := network.InitBridges(cfg.Links)
+	brs := network.InitBridges(cfg.Links, dryrun)
 
 	// Init namespaces
-	ns, err := network.InitNamespaces(cfg.Namespaces, dlinks)
+	ns, err := network.InitNamespaces(cfg.Namespaces, dlinks, dryrun)
 	if err != nil {
-		network.CleanupDirectLinks(dlinks)
-		network.CleanupBridges(brs)
-		network.CleanupNamespaces(ns)
+		network.CleanupDirectLinks(dlinks, dryrun)
+		network.CleanupBridges(brs, dryrun)
+		network.CleanupNamespaces(ns, dryrun)
 		return nil, err
 	}
 

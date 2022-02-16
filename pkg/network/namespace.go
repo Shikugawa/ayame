@@ -35,7 +35,7 @@ type Namespace struct {
 	RegisteredDeviceConfig []RegisteredDeviceConfig `json:"registered_device_config"`
 }
 
-func InitNamespace(config *config.NamespaceConfig) (*Namespace, error) {
+func InitNamespace(config *config.NamespaceConfig, dryrun bool) (*Namespace, error) {
 	var configs []RegisteredDeviceConfig
 	for _, c := range config.Devices {
 		tmp := RegisteredDeviceConfig{
@@ -51,7 +51,7 @@ func InitNamespace(config *config.NamespaceConfig) (*Namespace, error) {
 		RegisteredDeviceConfig: configs,
 	}
 
-	if err := RunIpNetnsAdd(config.Name); err != nil {
+	if err := RunIpNetnsAdd(config.Name, dryrun); err != nil {
 		return nil, err
 	}
 
@@ -60,12 +60,12 @@ func InitNamespace(config *config.NamespaceConfig) (*Namespace, error) {
 	return ns, nil
 }
 
-func (n *Namespace) Destroy() error {
+func (n *Namespace) Destroy(dryrun bool) error {
 	if !n.Active {
 		return fmt.Errorf("%s is already inactive\n", n.Name)
 	}
 
-	if err := RunIpNetnsDelete(n.Name); err != nil {
+	if err := RunIpNetnsDelete(n.Name, dryrun); err != nil {
 		return err
 	}
 
@@ -73,7 +73,7 @@ func (n *Namespace) Destroy() error {
 	return nil
 }
 
-func (n *Namespace) Attach(veth *Veth) error {
+func (n *Namespace) Attach(veth *Veth, dryrun bool) error {
 	if veth.Attached {
 		return fmt.Errorf("device %s is already attached", veth.Name)
 	}
@@ -94,12 +94,12 @@ func (n *Namespace) Attach(veth *Veth) error {
 			continue
 		}
 
-		if err := RunIpLinkSetNamespaces(veth.Name, n.Name); err != nil {
+		if err := RunIpLinkSetNamespaces(veth.Name, n.Name, dryrun); err != nil {
 			log.Warnf("failed to set device %s in namespace %s: %s", config.Name, n.Name, err)
 			continue
 		}
 
-		if err := RunAssignCidrToNamespaces(veth.Name, n.Name, config.Cidr); err != nil {
+		if err := RunAssignCidrToNamespaces(veth.Name, n.Name, config.Cidr, dryrun); err != nil {
 			log.Warnf("failed to assign CIDR %s to ns %s on %s", config.Cidr, n.Name, veth.Name)
 			continue
 		}
@@ -114,13 +114,13 @@ func (n *Namespace) Attach(veth *Veth) error {
 	return nil
 }
 
-func InitNamespaces(conf []*config.NamespaceConfig, links []*DirectLink) ([]*Namespace, error) {
+func InitNamespaces(conf []*config.NamespaceConfig, links []*DirectLink, dryrun bool) ([]*Namespace, error) {
 	var namespaces []*Namespace
 	netLinks := make(map[string][]int)
 
 	// Setup namespaces
 	for _, c := range conf {
-		ns, err := InitNamespace(c)
+		ns, err := InitNamespace(c, dryrun)
 		if err != nil {
 			return namespaces, err
 		}
@@ -163,7 +163,7 @@ func InitNamespaces(conf []*config.NamespaceConfig, links []*DirectLink) ([]*Nam
 		}
 
 		targetLink := links[linkIdx]
-		if err := targetLink.CreateLink(namespaces[idxs[0]], namespaces[idxs[1]]); err != nil {
+		if err := targetLink.CreateLink(namespaces[idxs[0]], namespaces[idxs[1]], dryrun); err != nil {
 			return namespaces, fmt.Errorf("failed to create links %s: %s", linkName, err.Error())
 		}
 	}
@@ -171,10 +171,10 @@ func InitNamespaces(conf []*config.NamespaceConfig, links []*DirectLink) ([]*Nam
 	return namespaces, nil
 }
 
-func CleanupNamespaces(nss []*Namespace) error {
+func CleanupNamespaces(nss []*Namespace, dryrun bool) error {
 	var allerr error
 	for _, n := range nss {
-		if err := n.Destroy(); err != nil {
+		if err := n.Destroy(dryrun); err != nil {
 			allerr = multierr.Append(allerr, err)
 		}
 	}

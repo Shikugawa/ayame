@@ -35,26 +35,26 @@ type VethPair struct {
 	Active bool `json:"is_active"`
 }
 
-func InitVethPair(config VethConfig) (*VethPair, error) {
+func InitVethPair(config VethConfig, dryrun bool) (*VethPair, error) {
 	pair := &VethPair{
 		Left:   Veth{Name: config.Name + "-left", Attached: false},
 		Right:  Veth{Name: config.Name + "-right", Attached: false},
 		Active: false,
 	}
 
-	if err := pair.Create(); err != nil {
+	if err := pair.Create(dryrun); err != nil {
 		return pair, err
 	}
 
 	return pair, nil
 }
 
-func (v *VethPair) Create() error {
+func (v *VethPair) Create(dryrun bool) error {
 	if v.Active {
 		return fmt.Errorf("%s@%s is already created", v.Left.Name, v.Right.Name)
 	}
 
-	if err := RunIpLinkCreate(v.Left.Name, v.Right.Name); err != nil {
+	if err := RunIpLinkCreate(v.Left.Name, v.Right.Name, dryrun); err != nil {
 		return err
 	}
 
@@ -64,7 +64,7 @@ func (v *VethPair) Create() error {
 	return nil
 }
 
-func (v *VethPair) Destroy() error {
+func (v *VethPair) Destroy(dryrun bool) error {
 	if !v.Active {
 		return fmt.Errorf("%s@%s doesn't exist", v.Left.Name, v.Right.Name)
 	}
@@ -72,7 +72,7 @@ func (v *VethPair) Destroy() error {
 	deleted := false
 
 	if !v.Left.Attached {
-		if err := RunIpLinkDelete(v.Left.Name); err != nil {
+		if err := RunIpLinkDelete(v.Left.Name, dryrun); err != nil {
 			return err
 		}
 
@@ -80,7 +80,7 @@ func (v *VethPair) Destroy() error {
 	}
 
 	if !deleted && !v.Right.Attached {
-		if err := RunIpLinkDelete(v.Right.Name); err != nil {
+		if err := RunIpLinkDelete(v.Right.Name, dryrun); err != nil {
 			return err
 		}
 

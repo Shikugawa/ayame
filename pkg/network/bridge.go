@@ -15,12 +15,12 @@ type Bridge struct {
 	VethPairs []*VethPair `json:"veth_pairs"`
 }
 
-func InitBridge(cfg *config.LinkConfig) (*Bridge, error) {
+func InitBridge(cfg *config.LinkConfig, dryrun bool) (*Bridge, error) {
 	if cfg.LinkMode != config.ModeDirectLink {
 		return nil, fmt.Errorf("invalid mode")
 	}
 
-	if err := CreateNewBridge(cfg.Name); err != nil {
+	if err := CreateNewBridge(cfg.Name, dryrun); err != nil {
 		return nil, err
 	}
 
@@ -30,14 +30,14 @@ func InitBridge(cfg *config.LinkConfig) (*Bridge, error) {
 }
 
 // TODO: consider error handling
-func (d *Bridge) Destroy() error {
+func (d *Bridge) Destroy(dryrun bool) error {
 	for _, p := range d.VethPairs {
-		if err := p.Destroy(); err != nil {
+		if err := p.Destroy(dryrun); err != nil {
 			log.Warnf(err.Error())
 		}
 	}
 
-	if err := DeleteBridge(d.Name); err != nil {
+	if err := DeleteBridge(d.Name, dryrun); err != nil {
 		return err
 	}
 
@@ -45,22 +45,22 @@ func (d *Bridge) Destroy() error {
 }
 
 // TODO: consider error handling
-func (d *Bridge) CreateLink(target *Namespace) error {
+func (d *Bridge) CreateLink(target *Namespace, dryrun bool) error {
 	val, _ := uuid.NewRandom()
 	conf := VethConfig{
 		Name: val.String(),
 	}
 
-	pair, err := InitVethPair(conf)
+	pair, err := InitVethPair(conf, dryrun)
 	if err != nil {
 		return err
 	}
 
-	if err := target.Attach(&pair.Left); err != nil {
+	if err := target.Attach(&pair.Left, dryrun); err != nil {
 		return err
 	}
 
-	if err := LinkBridge(d.Name, &pair.Right); err != nil {
+	if err := LinkBridge(d.Name, &pair.Right, dryrun); err != nil {
 		return err
 	}
 
@@ -68,14 +68,14 @@ func (d *Bridge) CreateLink(target *Namespace) error {
 	return nil
 }
 
-func InitBridges(links []*config.LinkConfig) []*Bridge {
+func InitBridges(links []*config.LinkConfig, dryrun bool) []*Bridge {
 	var brs []*Bridge
 	for _, link := range links {
 		if link.LinkMode != config.ModeBridge {
 			continue
 		}
 
-		br, err := InitBridge(link)
+		br, err := InitBridge(link, dryrun)
 		if err != nil {
 			log.Errorf("failed to init direct link: %s", link.Name)
 			continue
@@ -87,10 +87,10 @@ func InitBridges(links []*config.LinkConfig) []*Bridge {
 	return brs
 }
 
-func CleanupBridges(links []*Bridge) error {
+func CleanupBridges(links []*Bridge, dryrun bool) error {
 	var allerr error
 	for _, link := range links {
-		if err := link.Destroy(); err != nil {
+		if err := link.Destroy(dryrun); err != nil {
 			allerr = multierr.Append(allerr, err)
 		}
 	}

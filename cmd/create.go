@@ -42,7 +42,7 @@ var (
 			}
 
 			st, _ := state.LoadStateFromFile()
-			s, err := state.InitAll(cfg, st)
+			s, err := state.InitAll(cfg, st, false)
 			if err != nil {
 				log.Errorf(err.Error())
 				return
