@@ -30,11 +30,11 @@ type NamespaceConfig struct {
 	Devices []NamespaceDeviceConfig `yaml:"devices"`
 }
 
-type LinkMode int
+type LinkMode string
 
 const (
-	DirectLink LinkMode = iota
-	Bridge
+	ModeDirectLink = "direct_link"
+	ModeBridge     = "bridge"
 )
 
 type LinkConfig struct {
@@ -53,6 +53,9 @@ func ParseConfig(bytes []byte) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config: %s", err)
 	}
 
+	if err := ValidateLinkConfigs(cfg.Links); err != nil {
+		return nil, err
+	}
 	if err := ValidateNamespace(cfg.Namespaces, cfg.Links); err != nil {
 		return nil, err
 	}

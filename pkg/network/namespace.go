@@ -27,14 +27,14 @@ import (
 type Namespace struct {
 	Name                  string                         `json:"name"`
 	Active                bool                           `json:"is_active"`
-	deviceConfig          []config.NamespaceDeviceConfig `json:"device_config"`
-	configuredDeviceNames []string                       `json:"configured_device_names"`
+	DeviceConfig          []config.NamespaceDeviceConfig `json:"device_config"`
+	ConfiguredDeviceNames []string                       `json:"configured_device_names"`
 }
 
 func InitNamespace(config *config.NamespaceConfig) (*Namespace, error) {
 	ns := &Namespace{
 		Name:         config.Name,
-		deviceConfig: config.Devices,
+		DeviceConfig: config.Devices,
 		Active:       false,
 	}
 
@@ -66,24 +66,28 @@ func (n Namespace) Attach(veth *Veth) error {
 	}
 
 	var configuredName string
-	for _, config := range n.deviceConfig {
+	for _, config := range n.DeviceConfig {
 		if !strings.HasPrefix(veth.Name, config.Name) {
 			continue
 		}
 
 		_, _, err := net.ParseCIDR(config.Cidr)
 		if err != nil {
-			return fmt.Errorf("failed to parse CIDR %s: %s", config.Cidr, err)
+			log.Warnf("failed to parse CIDR %s in namespace %s device %s: %s\n", config.Cidr, n.Name, config.Name, err)
+			continue
 		}
+
 		if err := RunIpLinkSetNamespaces(veth.Name, n.Name); err != nil {
-			return err
+			log.Warnf("failed to set device %s in namespace %s: %s", config.Name, n.Name, err)
+			continue
 		}
 
 		if err := RunAssignCidrToNamespaces(veth.Name, n.Name, config.Cidr); err != nil {
-			return fmt.Errorf("failed to assign CIDR %s to ns %s on %s", config.Cidr, n.Name, veth.Name)
+			log.Warnf("failed to assign CIDR %s to ns %s on %s", config.Cidr, n.Name, veth.Name)
+			continue
 		}
-		log.Infof("succeeded to attach CIDR %s to dev %s on ns %s\n",
-			config.Cidr, veth.Name, n.Name)
+
+		log.Infof("succeeded to attach CIDR %s to dev %s on ns %s\n", config.Cidr, veth.Name, n.Name)
 
 		veth.Attached = true
 		configuredName = veth.Name
@@ -94,12 +98,12 @@ func (n Namespace) Attach(veth *Veth) error {
 		return fmt.Errorf("no device configurations find, matches to %s", veth.Name)
 	}
 
-	n.configuredDeviceNames = append(n.configuredDeviceNames, configuredName)
+	n.ConfiguredDeviceNames = append(n.ConfiguredDeviceNames, configuredName)
 
 	return nil
 }
 
-func InitNamespaces(conf []config.NamespaceConfig, links []Link) ([]Namespace, error) {
+func InitNamespaces(conf []config.NamespaceConfig, links []DirectLink) ([]Namespace, error) {
 	var namespaces []Namespace
 	netLinks := make(map[string][]int)
 
@@ -120,21 +124,37 @@ func InitNamespaces(conf []config.NamespaceConfig, links []Link) ([]Namespace, e
 	}
 
 	// Configure netlinks
-	for k, idxs := range netLinks {
-		for _, link := range links {
-			if link.Name() == k {
-				if len(idxs) == 1 {
-					return namespaces, fmt.Errorf("failed to link namespaces; %s only have 1 link\n", link.Name())
-				}
-
-				if len(idxs) > 2 {
-					return namespaces, fmt.Errorf("> 3 links are not supported")
-				}
-
-				if err := link.CreateLink(namespaces[idxs[0]], namespaces[idxs[1]]); err != nil {
-					return namespaces, fmt.Errorf("failed to create links %s: %s", link.Name(), err.Error())
-				}
+	findValidLinkIndex := func(name string) int {
+		fmt.Println(name)
+		for i, link := range links {
+			fmt.Println(link.Name)
+			if name == link.Name {
+				return i
 			}
+		}
+		return -1
+	}
+
+	for linkName, idxs := range netLinks {
+		if len(idxs) == 1 {
+			log.Warnf("%s have only 1 link in %s\n", linkName, namespaces[idxs[0]].Name)
+			continue
+		}
+
+		if len(idxs) > 2 {
+			log.Warnf("%s has over 3 links despite it is not supported", linkName)
+			continue
+		}
+
+		linkIdx := findValidLinkIndex(linkName)
+		if linkIdx == -1 {
+			log.Warnf("can't find device %s in configured links", linkName)
+			continue
+		}
+
+		targetLink := links[linkIdx]
+		if err := targetLink.CreateLink(namespaces[idxs[0]], namespaces[idxs[1]]); err != nil {
+			return namespaces, fmt.Errorf("failed to create links %s: %s", linkName, err.Error())
 		}
 	}
 

@@ -25,8 +25,8 @@ import (
 )
 
 type State struct {
-	Links      []network.DirectLink `json:"direct_links"`
-	Namespaces []network.Namespace  `json:"namespaces"`
+	DirectLinks []network.DirectLink `json:"direct_links"`
+	Namespaces  []network.Namespace  `json:"namespaces"`
 }
 
 var statePath = os.Getenv("HOME") + "/.ayame"
@@ -69,9 +69,9 @@ func (s *State) SaveState() error {
 }
 
 func (s *State) DisposeResources() error {
-	// if err := network.CleanupLinks(s.Links, verbose); err != nil {
-	// 	return err
-	// }
+	if err := network.CleanupDirectLinks(s.DirectLinks); err != nil {
+		return err
+	}
 	if err := network.CleanupNamespaces(s.Namespaces); err != nil {
 		return err
 	}
@@ -91,25 +91,19 @@ func (s *State) DumpAll() (string, error) {
 
 func InitAll(cfg *config.Config, currState *State) (*State, error) {
 	if currState != nil {
-		if err := currState.DisposeResources(); err != nil {
-			return nil, err
-		}
 		return nil, fmt.Errorf("must destroy existing resources")
 	}
 
-	links, err := network.InitLinks(cfg.Links)
+	// Init links
+	dlinks := network.InitDirectLinks(cfg.Links)
+	fmt.Println(cfg.Links)
+	// Init namespaces
+	ns, err := network.InitNamespaces(cfg.Namespaces, dlinks)
 	if err != nil {
-		network.CleanupLinks(links)
-		return nil, err
-	}
-
-	ns, err := network.InitNamespaces(cfg.Namespaces, links)
-	if err != nil {
-		network.CleanupLinks(links)
+		network.CleanupDirectLinks(dlinks)
 		network.CleanupNamespaces(ns)
 		return nil, err
 	}
 
-	// TODO: enable to save link state
-	return &State{Namespaces: ns}, nil
+	return &State{Namespaces: ns, DirectLinks: dlinks}, nil
 }

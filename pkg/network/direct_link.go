@@ -4,11 +4,14 @@ import (
 	"fmt"
 
 	"github.com/Shikugawa/ayame/pkg/config"
+	log "github.com/sirupsen/logrus"
+	"go.uber.org/multierr"
 )
 
 type DirectLink struct {
-	pair VethPair `json:"veth_pair"`
-	busy bool     `json:"busy"`
+	VethPair `json:"veth_pair"`
+	Name     string `json:"name"`
+	Busy     bool   `json:"busy"`
 }
 
 func InitDirectLink(config config.LinkConfig) (*DirectLink, error) {
@@ -22,35 +25,63 @@ func InitDirectLink(config config.LinkConfig) (*DirectLink, error) {
 	}
 
 	return &DirectLink{
-		pair: *pair,
-		busy: false,
+		VethPair: *pair,
+		Name:     config.Name,
+		Busy:     false,
 	}, nil
 }
 
 func (d *DirectLink) Destroy() error {
-	if !d.busy {
-		return fmt.Errorf("%s is not busy\n", d.pair.Name)
+	if !d.Busy {
+		return fmt.Errorf("%s is not busy\n", d.Name)
 	}
 
-	return d.pair.Destroy()
+	return d.VethPair.Destroy()
 }
 
 func (d *DirectLink) CreateLink(left Attacheable, right Attacheable) error {
-	if d.busy {
-		return fmt.Errorf("%s has been already busy\n", d.pair.Name)
+	if d.Busy {
+		return fmt.Errorf("%s has been already busy\n", d.Name)
 	}
-	if err := left.Attach(d.pair.Left); err != nil {
+
+	if err := left.Attach(d.VethPair.Left); err != nil {
 		return err
 	}
 
-	if err := right.Attach(d.pair.Right); err != nil {
+	if err := right.Attach(d.VethPair.Right); err != nil {
+		// TODO: add error handling if left succeeded but right failed.
 		return err
 	}
 
-	d.busy = true
+	d.Busy = true
 	return nil
 }
 
-func (d *DirectLink) Name() string {
-	return d.pair.Name
+func InitDirectLinks(links []config.LinkConfig) []DirectLink {
+	var dlinks []DirectLink
+	for _, link := range links {
+		if link.LinkMode != config.ModeDirectLink {
+			continue
+		}
+
+		dlink, err := InitDirectLink(link)
+		if err != nil {
+			log.Errorf("failed to init direct link: %s", link.Name)
+			continue
+		}
+
+		dlinks = append(dlinks, *dlink)
+	}
+
+	return dlinks
+}
+
+func CleanupDirectLinks(links []DirectLink) error {
+	var allerr error
+	for _, link := range links {
+		if err := link.Destroy(); err != nil {
+			allerr = multierr.Append(allerr, err)
+		}
+	}
+	return allerr
 }

@@ -14,12 +14,11 @@
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/Shikugawa/ayame/pkg/config"
 	"github.com/Shikugawa/ayame/pkg/state"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -32,26 +31,27 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			bytes, err := ioutil.ReadFile(configPath)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error()+"\n")
+				log.Errorf(err.Error())
 				return
 			}
 
 			cfg, err := config.ParseConfig(bytes)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error()+"\n")
+				log.Errorf(err.Error())
 				return
 			}
 
 			st, _ := state.LoadStateFromFile()
 			s, err := state.InitAll(cfg, st)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error()+"\n")
+				log.Errorf(err.Error())
 				return
 			}
-			fmt.Println("succeeded to initialize")
+
+			log.Info("succeeded to initialize")
 
 			if err := s.SaveState(); err != nil {
-				fmt.Fprintf(os.Stderr, err.Error()+"\n")
+				log.Errorf(err.Error())
 			}
 		},
 	}
