@@ -24,18 +24,31 @@ import (
 	"go.uber.org/multierr"
 )
 
+type RegisteredDeviceConfig struct {
+	config.NamespaceDeviceConfig `json:"device_config"`
+	Configured                   bool `json:"configured"`
+}
+
 type Namespace struct {
-	Name                  string                         `json:"name"`
-	Active                bool                           `json:"is_active"`
-	DeviceConfig          []config.NamespaceDeviceConfig `json:"device_config"`
-	ConfiguredDeviceNames []string                       `json:"configured_device_names"`
+	Name                   string                   `json:"name"`
+	Active                 bool                     `json:"is_active"`
+	RegisteredDeviceConfig []RegisteredDeviceConfig `json:"registered_device_config"`
 }
 
 func InitNamespace(config *config.NamespaceConfig) (*Namespace, error) {
+	var configs []RegisteredDeviceConfig
+	for _, c := range config.Devices {
+		tmp := RegisteredDeviceConfig{
+			Configured: false,
+		}
+		tmp.NamespaceDeviceConfig = c
+		configs = append(configs, tmp)
+	}
+
 	ns := &Namespace{
-		Name:         config.Name,
-		DeviceConfig: config.Devices,
-		Active:       false,
+		Name:                   config.Name,
+		Active:                 false,
+		RegisteredDeviceConfig: configs,
 	}
 
 	if err := RunIpNetnsAdd(config.Name); err != nil {
@@ -60,14 +73,18 @@ func (n *Namespace) Destroy() error {
 	return nil
 }
 
-func (n Namespace) Attach(veth *Veth) error {
+func (n *Namespace) Attach(veth *Veth) error {
 	if veth.Attached {
 		return fmt.Errorf("device %s is already attached", veth.Name)
 	}
 
-	var configuredName string
-	for _, config := range n.DeviceConfig {
+	for idx, config := range n.RegisteredDeviceConfig {
 		if !strings.HasPrefix(veth.Name, config.Name) {
+			continue
+		}
+
+		if config.Configured {
+			log.Warnf("device %s has been attached to namexpace %s", config.NamespaceDeviceConfig.Name, n.Name)
 			continue
 		}
 
@@ -89,31 +106,26 @@ func (n Namespace) Attach(veth *Veth) error {
 
 		log.Infof("succeeded to attach CIDR %s to dev %s on ns %s\n", config.Cidr, veth.Name, n.Name)
 
+		n.RegisteredDeviceConfig[idx].Configured = true
 		veth.Attached = true
-		configuredName = veth.Name
 		break
 	}
-
-	if configuredName == "" {
-		return fmt.Errorf("no device configurations find, matches to %s", veth.Name)
-	}
-
-	n.ConfiguredDeviceNames = append(n.ConfiguredDeviceNames, configuredName)
 
 	return nil
 }
 
-func InitNamespaces(conf []config.NamespaceConfig, links []DirectLink) ([]Namespace, error) {
-	var namespaces []Namespace
+func InitNamespaces(conf []*config.NamespaceConfig, links []*DirectLink) ([]*Namespace, error) {
+	var namespaces []*Namespace
 	netLinks := make(map[string][]int)
 
+	// Setup namespaces
 	for _, c := range conf {
-		ns, err := InitNamespace(&c)
+		ns, err := InitNamespace(c)
 		if err != nil {
 			return namespaces, err
 		}
 
-		namespaces = append(namespaces, *ns)
+		namespaces = append(namespaces, ns)
 
 		for _, device := range c.Devices {
 			if _, ok := netLinks[device.Name]; !ok {
@@ -125,9 +137,7 @@ func InitNamespaces(conf []config.NamespaceConfig, links []DirectLink) ([]Namesp
 
 	// Configure netlinks
 	findValidLinkIndex := func(name string) int {
-		fmt.Println(name)
 		for i, link := range links {
-			fmt.Println(link.Name)
 			if name == link.Name {
 				return i
 			}
@@ -161,7 +171,7 @@ func InitNamespaces(conf []config.NamespaceConfig, links []DirectLink) ([]Namesp
 	return namespaces, nil
 }
 
-func CleanupNamespaces(nss []Namespace) error {
+func CleanupNamespaces(nss []*Namespace) error {
 	var allerr error
 	for _, n := range nss {
 		if err := n.Destroy(); err != nil {

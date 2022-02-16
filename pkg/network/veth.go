@@ -30,15 +30,15 @@ type Veth struct {
 }
 
 type VethPair struct {
-	Left   *Veth `json:"veth_left"`
-	Right  *Veth `json:"veth_right"`
-	Active bool  `json:"is_active"`
+	Left   Veth `json:"veth_left"`
+	Right  Veth `json:"veth_right"`
+	Active bool `json:"is_active"`
 }
 
 func InitVethPair(config VethConfig) (*VethPair, error) {
 	pair := &VethPair{
-		Left:   &Veth{Name: config.Name + "-left", Attached: false},
-		Right:  &Veth{Name: config.Name + "-right", Attached: false},
+		Left:   Veth{Name: config.Name + "-left", Attached: false},
+		Right:  Veth{Name: config.Name + "-right", Attached: false},
 		Active: false,
 	}
 

@@ -22,11 +22,12 @@ import (
 
 	"github.com/Shikugawa/ayame/pkg/config"
 	"github.com/Shikugawa/ayame/pkg/network"
+	log "github.com/sirupsen/logrus"
 )
 
 type State struct {
-	DirectLinks []network.DirectLink `json:"direct_links"`
-	Namespaces  []network.Namespace  `json:"namespaces"`
+	DirectLinks []*network.DirectLink `json:"direct_links"`
+	Namespaces  []*network.Namespace  `json:"namespaces"`
 }
 
 var statePath = os.Getenv("HOME") + "/.ayame"
@@ -65,6 +66,9 @@ func (s *State) SaveState() error {
 	if err := ioutil.WriteFile(statePath+"/"+stateFileName, b, 0644); err != nil {
 		return err
 	}
+
+	log.Info("succeeded to save state")
+
 	return nil
 }
 
@@ -75,6 +79,7 @@ func (s *State) DisposeResources() error {
 	if err := network.CleanupNamespaces(s.Namespaces); err != nil {
 		return err
 	}
+
 	if err := os.Remove(statePath + "/" + stateFileName); err != nil {
 		return err
 	}
@@ -96,7 +101,7 @@ func InitAll(cfg *config.Config, currState *State) (*State, error) {
 
 	// Init links
 	dlinks := network.InitDirectLinks(cfg.Links)
-	fmt.Println(cfg.Links)
+
 	// Init namespaces
 	ns, err := network.InitNamespaces(cfg.Namespaces, dlinks)
 	if err != nil {

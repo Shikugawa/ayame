@@ -14,11 +14,10 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/Shikugawa/ayame/pkg/state"
 	"github.com/spf13/cobra"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // deleteCmd represents the delete command
@@ -29,11 +28,14 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			s, err := state.LoadStateFromFile()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error()+"\n")
+				log.Errorln(err.Error())
 				return
 			}
 
-			s.DisposeResources()
+			if err := s.DisposeResources(); err != nil {
+				log.Errorln(err.Error())
+				return
+			}
 		},
 	}
 )

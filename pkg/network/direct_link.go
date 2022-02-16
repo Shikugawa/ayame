@@ -14,7 +14,7 @@ type DirectLink struct {
 	Busy     bool   `json:"busy"`
 }
 
-func InitDirectLink(config config.LinkConfig) (*DirectLink, error) {
+func InitDirectLink(config *config.LinkConfig) (*DirectLink, error) {
 	conf := VethConfig{
 		Name: config.Name,
 	}
@@ -39,16 +39,16 @@ func (d *DirectLink) Destroy() error {
 	return d.VethPair.Destroy()
 }
 
-func (d *DirectLink) CreateLink(left Attacheable, right Attacheable) error {
+func (d *DirectLink) CreateLink(left *Namespace, right *Namespace) error {
 	if d.Busy {
 		return fmt.Errorf("%s has been already busy\n", d.Name)
 	}
 
-	if err := left.Attach(d.VethPair.Left); err != nil {
+	if err := (*left).Attach(&d.VethPair.Left); err != nil {
 		return err
 	}
 
-	if err := right.Attach(d.VethPair.Right); err != nil {
+	if err := (*right).Attach(&d.VethPair.Right); err != nil {
 		// TODO: add error handling if left succeeded but right failed.
 		return err
 	}
@@ -57,8 +57,8 @@ func (d *DirectLink) CreateLink(left Attacheable, right Attacheable) error {
 	return nil
 }
 
-func InitDirectLinks(links []config.LinkConfig) []DirectLink {
-	var dlinks []DirectLink
+func InitDirectLinks(links []*config.LinkConfig) []*DirectLink {
+	var dlinks []*DirectLink
 	for _, link := range links {
 		if link.LinkMode != config.ModeDirectLink {
 			continue
@@ -70,13 +70,13 @@ func InitDirectLinks(links []config.LinkConfig) []DirectLink {
 			continue
 		}
 
-		dlinks = append(dlinks, *dlink)
+		dlinks = append(dlinks, dlink)
 	}
 
 	return dlinks
 }
 
-func CleanupDirectLinks(links []DirectLink) error {
+func CleanupDirectLinks(links []*DirectLink) error {
 	var allerr error
 	for _, link := range links {
 		if err := link.Destroy(); err != nil {

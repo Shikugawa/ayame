@@ -2,7 +2,7 @@ package config
 
 import "fmt"
 
-func ValidateLinkConfigs(linkConfigs []LinkConfig) error {
+func ValidateLinkConfigs(linkConfigs []*LinkConfig) error {
 	// Check required fields
 	for _, cfg := range linkConfigs {
 		if cfg.LinkMode == "" {
@@ -26,7 +26,7 @@ func ValidateLinkConfigs(linkConfigs []LinkConfig) error {
 	return nil
 }
 
-func ValidateNamespace(configs []NamespaceConfig, linkConfigs []LinkConfig) error {
+func ValidateNamespace(configs []*NamespaceConfig, linkConfigs []*LinkConfig) error {
 	// Unique Name
 	tmp := make(map[string]bool)
 	for _, cfg := range configs {

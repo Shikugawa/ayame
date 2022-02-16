@@ -38,13 +38,13 @@ const (
 )
 
 type LinkConfig struct {
-	LinkMode LinkMode
-	Name     string
+	LinkMode LinkMode `yaml:"mode"`
+	Name     string   `yaml:"name"`
 }
 
 type Config struct {
-	Links      []LinkConfig      `yaml:"links"`
-	Namespaces []NamespaceConfig `yaml:"namespaces"`
+	Links      []*LinkConfig      `yaml:"links"`
+	Namespaces []*NamespaceConfig `yaml:"namespaces"`
 }
 
 func ParseConfig(bytes []byte) (*Config, error) {
