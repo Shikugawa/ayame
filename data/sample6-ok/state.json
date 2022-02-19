@@ -1,0 +1,155 @@
+{
+  "direct_links": {
+    "veth1": {
+      "veth_pair": {
+        "veth_left": {
+          "name": "veth1-left",
+          "attached": true
+        },
+        "veth_right": {
+          "name": "veth1-right",
+          "attached": true
+        },
+        "is_active": true
+      },
+      "name": "veth1",
+      "busy": true
+    },
+    "veth2": {
+      "veth_pair": {
+        "veth_left": {
+          "name": "veth2-left",
+          "attached": true
+        },
+        "veth_right": {
+          "name": "veth2-right",
+          "attached": true
+        },
+        "is_active": true
+      },
+      "name": "veth2",
+      "busy": true
+    }
+  },
+  "bridges": {
+    "br1": {
+      "name": "br1",
+      "veth_pairs": [
+        {
+          "veth_left": {
+            "name": "br1-1-left",
+            "attached": true
+          },
+          "veth_right": {
+            "name": "br1-1-right",
+            "attached": true
+          },
+          "is_active": true
+        },
+        {
+          "veth_left": {
+            "name": "br1-2-left",
+            "attached": true
+          },
+          "veth_right": {
+            "name": "br1-2-right",
+            "attached": true
+          },
+          "is_active": true
+        },
+        {
+          "veth_left": {
+            "name": "br1-3-left",
+            "attached": true
+          },
+          "veth_right": {
+            "name": "br1-3-right",
+            "attached": true
+          },
+          "is_active": true
+        }
+      ]
+    }
+  },
+  "namespaces": [
+    {
+      "name": "ns1",
+      "is_active": true,
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "veth1",
+            "Cidr": "192.168.100.10/24"
+          },
+          "configured": true
+        },
+        {
+          "device_config": {
+            "Name": "veth2",
+            "Cidr": "182.101.101.10/24"
+          },
+          "configured": true
+        }
+      ]
+    },
+    {
+      "name": "ns2",
+      "is_active": true,
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "veth1",
+            "Cidr": "192.168.100.11/24"
+          },
+          "configured": true
+        }
+      ]
+    },
+    {
+      "name": "ns3",
+      "is_active": true,
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "veth2",
+            "Cidr": "182.101.101.11/24"
+          },
+          "configured": true
+        },
+        {
+          "device_config": {
+            "Name": "br1",
+            "Cidr": "182.102.101.11/24"
+          },
+          "configured": true
+        }
+      ]
+    },
+    {
+      "name": "ns4",
+      "is_active": true,
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "br1",
+            "Cidr": "182.102.101.12/24"
+          },
+          "configured": true
+        }
+      ]
+    },
+    {
+      "name": "ns5",
+      "is_active": true,
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "br1",
+            "Cidr": "182.102.101.13/24"
+          },
+          "configured": true
+        }
+      ]
+    }
+  ]
+}
