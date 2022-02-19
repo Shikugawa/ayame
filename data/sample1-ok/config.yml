@@ -7,6 +7,10 @@ namespaces:
     devices:
       - name: veth1
         cidr: 192.168.100.11/24
+    commands:
+      - ls
+      - iptables -L
+      - iptables -L -t nat
 
 links:
   - name: veth1

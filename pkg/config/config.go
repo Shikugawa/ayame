@@ -26,8 +26,9 @@ type NamespaceDeviceConfig struct {
 }
 
 type NamespaceConfig struct {
-	Name    string                  `yaml:"name"`
-	Devices []NamespaceDeviceConfig `yaml:"devices"`
+	Name     string                  `yaml:"name"`
+	Devices  []NamespaceDeviceConfig `yaml:"devices"`
+	Commands []string                `yaml:"commands"`
 }
 
 type LinkMode string

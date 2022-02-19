@@ -123,7 +123,8 @@ func InitResources(cfg *config.Config, dryrun bool) (*State, error) {
 
 	state = &State{Namespaces: nil, DirectLinks: nil, Bridges: nil}
 
-	cleanup := func(links map[string]*network.DirectLink, bridges map[string]*network.Bridge, nss []*network.Namespace, dryrun bool) {
+	cleanup := func(links map[string]*network.DirectLink, bridges map[string]*network.Bridge,
+		nss []*network.Namespace, dryrun bool) {
 		if links != nil {
 			network.CleanupDirectLinks(links, dryrun)
 		}
@@ -167,6 +168,16 @@ func InitResources(cfg *config.Config, dryrun bool) (*State, error) {
 	if err := network.InitNamespacesBridges(ns, brs, dryrun); err != nil {
 		cleanup(dlinks, brs, ns, dryrun)
 		return nil, err
+	}
+
+	// Run Commands inside namespaces
+	for _, n := range ns {
+		// TODO: dirty
+		for _, nscfg := range cfg.Namespaces {
+			if n.Name == nscfg.Name {
+				n.RunCommands(nscfg.Commands, dryrun)
+			}
+		}
 	}
 
 	state.DirectLinks = dlinks

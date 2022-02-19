@@ -17,6 +17,7 @@ package network
 import (
 	"fmt"
 	"net"
+	"os/exec"
 	"strings"
 
 	"github.com/Shikugawa/ayame/pkg/config"
@@ -101,6 +102,50 @@ func (n *Namespace) Attach(veth *Veth, dryrun bool) error {
 	}
 
 	return nil
+}
+
+func (n *Namespace) RunCommands(commands []string, dryrun bool) {
+	for _, command := range commands {
+		netnsCmd, err := n.buildCommand(command)
+		if err != nil {
+			log.Warn(err.Error())
+			continue
+		}
+		name := netnsCmd[0]
+		rest := netnsCmd[1:]
+		cmd := exec.Command(name, rest...)
+		log.Infof("execute %s", cmd.String())
+
+		if dryrun {
+			continue
+		}
+		res, err := cmd.Output()
+		if err != nil {
+			log.Warn(err.Error())
+			continue
+		}
+
+		log.Infof("\n%s", string(res))
+	}
+}
+
+func (n *Namespace) buildCommand(command string) ([]string, error) {
+	splited := strings.Split(command, " ")
+	if len(splited) == 0 {
+		return nil, fmt.Errorf("malformed command: %s", command)
+	}
+
+	netnsCmd := []string{}
+	netnsCmd = append(netnsCmd, "ip")
+	netnsCmd = append(netnsCmd, "netns")
+	netnsCmd = append(netnsCmd, "exec")
+	netnsCmd = append(netnsCmd, n.Name)
+
+	for _, s := range splited {
+		netnsCmd = append(netnsCmd, s)
+	}
+
+	return netnsCmd, nil
 }
 
 func InitNamespaces(conf []*config.NamespaceConfig, dryrun bool) ([]*Namespace, error) {
