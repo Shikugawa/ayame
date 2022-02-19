@@ -12,8 +12,7 @@
           "veth_right": {
             "name": "br1-1-right",
             "attached": true
-          },
-          "is_active": true
+          }
         },
         {
           "veth_left": {
@@ -23,8 +22,7 @@
           "veth_right": {
             "name": "br1-2-right",
             "attached": true
-          },
-          "is_active": true
+          }
         }
       ]
     }
@@ -32,7 +30,6 @@
   "namespaces": [
     {
       "name": "ns1",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {
@@ -45,7 +42,6 @@
     },
     {
       "name": "ns2",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {

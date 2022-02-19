@@ -9,11 +9,9 @@
         "veth_right": {
           "name": "veth1-right",
           "attached": true
-        },
-        "is_active": true
+        }
       },
-      "name": "veth1",
-      "busy": true
+      "name": "veth1"
     },
     "veth2": {
       "veth_pair": {
@@ -24,11 +22,9 @@
         "veth_right": {
           "name": "veth2-right",
           "attached": true
-        },
-        "is_active": true
+        }
       },
-      "name": "veth2",
-      "busy": true
+      "name": "veth2"
     },
     "veth3": {
       "veth_pair": {
@@ -39,18 +35,15 @@
         "veth_right": {
           "name": "veth3-right",
           "attached": false
-        },
-        "is_active": true
+        }
       },
-      "name": "veth3",
-      "busy": false
+      "name": "veth3"
     }
   },
   "bridges": {},
   "namespaces": [
     {
       "name": "ns1",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {
@@ -70,7 +63,6 @@
     },
     {
       "name": "ns2",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {
@@ -83,7 +75,6 @@
     },
     {
       "name": "ns3",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {

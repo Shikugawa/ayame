@@ -28,5 +28,9 @@ links:
     mode: direct_link
   - name: veth2
     mode: direct_link
+  - name: veth3
+    mode: direct_link
   - name: br1
+    mode: bridge
+  - name: br2
     mode: bridge

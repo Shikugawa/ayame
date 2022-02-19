@@ -15,8 +15,6 @@
 package network
 
 import (
-	"fmt"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,16 +28,14 @@ type Veth struct {
 }
 
 type VethPair struct {
-	Left   Veth `json:"veth_left"`
-	Right  Veth `json:"veth_right"`
-	Active bool `json:"is_active"`
+	Left  Veth `json:"veth_left"`
+	Right Veth `json:"veth_right"`
 }
 
 func InitVethPair(config VethConfig, dryrun bool) (*VethPair, error) {
 	pair := &VethPair{
-		Left:   Veth{Name: config.Name + "-left", Attached: false},
-		Right:  Veth{Name: config.Name + "-right", Attached: false},
-		Active: false,
+		Left:  Veth{Name: config.Name + "-left", Attached: false},
+		Right: Veth{Name: config.Name + "-right", Attached: false},
 	}
 
 	if err := pair.Create(dryrun); err != nil {
@@ -50,25 +46,16 @@ func InitVethPair(config VethConfig, dryrun bool) (*VethPair, error) {
 }
 
 func (v *VethPair) Create(dryrun bool) error {
-	if v.Active {
-		return fmt.Errorf("%s@%s is already created", v.Left.Name, v.Right.Name)
-	}
-
 	if err := RunIpLinkCreate(v.Left.Name, v.Right.Name, dryrun); err != nil {
 		return err
 	}
 
-	v.Active = true
 	log.Infof("succeeded to create %s@%s", v.Left.Name, v.Right.Name)
 
 	return nil
 }
 
 func (v *VethPair) Destroy(dryrun bool) error {
-	if !v.Active {
-		return fmt.Errorf("%s@%s doesn't exist", v.Left.Name, v.Right.Name)
-	}
-
 	deleted := false
 
 	if !v.Left.Attached {
@@ -92,7 +79,6 @@ func (v *VethPair) Destroy(dryrun bool) error {
 		return nil
 	}
 
-	v.Active = false
 	log.Infof("succeeded to delete %s@%s", v.Left.Name, v.Right.Name)
 
 	return nil

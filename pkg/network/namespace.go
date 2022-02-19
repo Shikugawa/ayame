@@ -31,7 +31,6 @@ type RegisteredDeviceConfig struct {
 
 type Namespace struct {
 	Name                   string                   `json:"name"`
-	Active                 bool                     `json:"is_active"`
 	RegisteredDeviceConfig []RegisteredDeviceConfig `json:"registered_device_config"`
 }
 
@@ -47,7 +46,6 @@ func InitNamespace(config *config.NamespaceConfig, dryrun bool) (*Namespace, err
 
 	ns := &Namespace{
 		Name:                   config.Name,
-		Active:                 false,
 		RegisteredDeviceConfig: configs,
 	}
 
@@ -56,15 +54,10 @@ func InitNamespace(config *config.NamespaceConfig, dryrun bool) (*Namespace, err
 	}
 
 	log.Infof("succeeded to create ns %s\n", config.Name)
-	ns.Active = true
 	return ns, nil
 }
 
 func (n *Namespace) Destroy(dryrun bool) error {
-	if !n.Active {
-		return fmt.Errorf("%s is already inactive\n", n.Name)
-	}
-
 	if err := RunIpNetnsDelete(n.Name, dryrun); err != nil {
 		return err
 	}

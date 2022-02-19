@@ -9,18 +9,15 @@
         "veth_right": {
           "name": "veth1-right",
           "attached": true
-        },
-        "is_active": true
+        }
       },
-      "name": "veth1",
-      "busy": true
+      "name": "veth1"
     }
   },
   "bridges": {},
   "namespaces": [
     {
       "name": "ns1",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {
@@ -33,7 +30,6 @@
     },
     {
       "name": "ns2",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {

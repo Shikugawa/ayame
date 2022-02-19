@@ -9,11 +9,9 @@
         "veth_right": {
           "name": "veth1-right",
           "attached": true
-        },
-        "is_active": true
+        }
       },
-      "name": "veth1",
-      "busy": true
+      "name": "veth1"
     },
     "veth2": {
       "veth_pair": {
@@ -24,11 +22,22 @@
         "veth_right": {
           "name": "veth2-right",
           "attached": true
-        },
-        "is_active": true
+        }
       },
-      "name": "veth2",
-      "busy": true
+      "name": "veth2"
+    },
+    "veth3": {
+      "veth_pair": {
+        "veth_left": {
+          "name": "veth3-left",
+          "attached": false
+        },
+        "veth_right": {
+          "name": "veth3-right",
+          "attached": false
+        }
+      },
+      "name": "veth3"
     }
   },
   "bridges": {
@@ -43,8 +52,7 @@
           "veth_right": {
             "name": "br1-1-right",
             "attached": true
-          },
-          "is_active": true
+          }
         },
         {
           "veth_left": {
@@ -54,8 +62,7 @@
           "veth_right": {
             "name": "br1-2-right",
             "attached": true
-          },
-          "is_active": true
+          }
         },
         {
           "veth_left": {
@@ -65,16 +72,18 @@
           "veth_right": {
             "name": "br1-3-right",
             "attached": true
-          },
-          "is_active": true
+          }
         }
       ]
+    },
+    "br2": {
+      "name": "br2",
+      "veth_pairs": null
     }
   },
   "namespaces": [
     {
       "name": "ns1",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {
@@ -94,7 +103,6 @@
     },
     {
       "name": "ns2",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {
@@ -107,7 +115,6 @@
     },
     {
       "name": "ns3",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {
@@ -127,7 +134,6 @@
     },
     {
       "name": "ns4",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {
@@ -140,7 +146,6 @@
     },
     {
       "name": "ns5",
-      "is_active": true,
       "registered_device_config": [
         {
           "device_config": {

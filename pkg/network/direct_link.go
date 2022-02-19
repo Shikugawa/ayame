@@ -10,7 +10,6 @@ import (
 type DirectLink struct {
 	VethPair `json:"veth_pair"`
 	Name     string `json:"name"`
-	Busy     bool   `json:"busy"`
 }
 
 func InitDirectLink(cfg *config.LinkConfig, dryrun bool) (*DirectLink, error) {
@@ -30,22 +29,16 @@ func InitDirectLink(cfg *config.LinkConfig, dryrun bool) (*DirectLink, error) {
 	return &DirectLink{
 		VethPair: *pair,
 		Name:     cfg.Name,
-		Busy:     false,
 	}, nil
 }
 
-// TODO: consider error handling
 func (d *DirectLink) Destroy(dryrun bool) error {
-	if !d.Busy {
-		return fmt.Errorf("%s is not busy\n", d.Name)
-	}
-
 	return d.VethPair.Destroy(dryrun)
 }
 
 // TODO: consider error handling
 func (d *DirectLink) CreateLink(left *Namespace, right *Namespace, dryrun bool) error {
-	if d.Busy {
+	if d.VethPair.Left.Attached && d.VethPair.Right.Attached {
 		return fmt.Errorf("%s has been already busy\n", d.Name)
 	}
 
@@ -58,7 +51,6 @@ func (d *DirectLink) CreateLink(left *Namespace, right *Namespace, dryrun bool) 
 		return err
 	}
 
-	d.Busy = true
 	return nil
 }
 
