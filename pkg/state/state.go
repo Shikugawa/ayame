@@ -123,6 +123,20 @@ func InitResources(cfg *config.Config, dryrun bool) (*State, error) {
 
 	state = &State{Namespaces: nil, DirectLinks: nil, Bridges: nil}
 
+	cleanup := func(links []*network.DirectLink, bridges []*network.Bridge, nss []*network.Namespace, dryrun bool) {
+		if links != nil {
+			network.CleanupDirectLinks(links, dryrun)
+		}
+
+		if bridges != nil {
+			network.CleanupBridges(bridges, dryrun)
+		}
+
+		if nss != nil {
+			network.CleanupNamespaces(nss, dryrun)
+		}
+	}
+
 	// Init links
 	dlinks, err := network.InitDirectLinks(cfg.Links, dryrun)
 	if err != nil {
@@ -132,22 +146,26 @@ func InitResources(cfg *config.Config, dryrun bool) (*State, error) {
 	// Init Bridges
 	brs, err := network.InitBridges(cfg.Links, dryrun)
 	if err != nil {
-		network.CleanupDirectLinks(dlinks, dryrun)
+		cleanup(dlinks, nil, nil, dryrun)
 		return nil, err
 	}
 
 	// Init namespaces
 	ns, err := network.InitNamespaces(cfg.Namespaces, dryrun)
 	if err != nil {
-		network.CleanupDirectLinks(dlinks, dryrun)
-		network.CleanupBridges(brs, dryrun)
+		cleanup(dlinks, brs, nil, dryrun)
 		return nil, err
 	}
 
 	// Link (Direct Links) Namespaces
 	if err := network.InitNamespacesLinks(ns, dlinks, dryrun); err != nil {
-		network.CleanupDirectLinks(dlinks, dryrun)
-		network.CleanupBridges(brs, dryrun)
+		cleanup(dlinks, brs, ns, dryrun)
+		return nil, err
+	}
+
+	// Link (Bridges) Namespaces
+	if err := network.InitNamespacesBridges(ns, brs, dryrun); err != nil {
+		cleanup(dlinks, brs, ns, dryrun)
 		return nil, err
 	}
 

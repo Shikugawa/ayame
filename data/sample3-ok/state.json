@@ -3,19 +3,58 @@
   "bridges": [
     {
       "name": "br1",
-      "veth_pairs": null
+      "veth_pairs": [
+        {
+          "veth_left": {
+            "name": "br1-1-left",
+            "attached": true
+          },
+          "veth_right": {
+            "name": "br1-1-right",
+            "attached": true
+          },
+          "is_active": true
+        },
+        {
+          "veth_left": {
+            "name": "br1-2-left",
+            "attached": true
+          },
+          "veth_right": {
+            "name": "br1-2-right",
+            "attached": true
+          },
+          "is_active": true
+        }
+      ]
     }
   ],
   "namespaces": [
     {
       "name": "ns1",
       "is_active": true,
-      "registered_device_config": null
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "br1",
+            "Cidr": "192.168.100.10/24"
+          },
+          "configured": true
+        }
+      ]
     },
     {
       "name": "ns2",
       "is_active": true,
-      "registered_device_config": null
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "br1",
+            "Cidr": "192.168.100.11/24"
+          },
+          "configured": true
+        }
+      ]
     }
   ]
 }

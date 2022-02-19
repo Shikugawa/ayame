@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/Shikugawa/ayame/pkg/config"
-	"github.com/google/uuid"
 	"go.uber.org/multierr"
 
 	log "github.com/sirupsen/logrus"
@@ -46,9 +45,9 @@ func (d *Bridge) Destroy(dryrun bool) error {
 
 // TODO: consider error handling
 func (d *Bridge) CreateLink(target *Namespace, dryrun bool) error {
-	val, _ := uuid.NewRandom()
+	num := len(d.VethPairs) + 1
 	conf := VethConfig{
-		Name: val.String(),
+		Name: d.Name + "-" + fmt.Sprint(num),
 	}
 
 	pair, err := InitVethPair(conf, dryrun)
@@ -63,6 +62,7 @@ func (d *Bridge) CreateLink(target *Namespace, dryrun bool) error {
 	if err := LinkBridge(d.Name, &pair.Right, dryrun); err != nil {
 		return err
 	}
+	pair.Right.Attached = true
 
 	d.VethPairs = append(d.VethPairs, pair)
 	return nil

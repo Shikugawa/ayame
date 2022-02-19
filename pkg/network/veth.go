@@ -43,7 +43,7 @@ func InitVethPair(config VethConfig, dryrun bool) (*VethPair, error) {
 	}
 
 	if err := pair.Create(dryrun); err != nil {
-		return pair, err
+		return nil, err
 	}
 
 	return pair, nil
