@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/Shikugawa/ayame/pkg/config"
-	log "github.com/sirupsen/logrus"
 	"go.uber.org/multierr"
 )
 
@@ -63,7 +62,7 @@ func (d *DirectLink) CreateLink(left *Namespace, right *Namespace, dryrun bool) 
 	return nil
 }
 
-func InitDirectLinks(links []*config.LinkConfig, dryrun bool) []*DirectLink {
+func InitDirectLinks(links []*config.LinkConfig, dryrun bool) ([]*DirectLink, error) {
 	var dlinks []*DirectLink
 	for _, link := range links {
 		if link.LinkMode != config.ModeDirectLink {
@@ -72,14 +71,13 @@ func InitDirectLinks(links []*config.LinkConfig, dryrun bool) []*DirectLink {
 
 		dlink, err := InitDirectLink(link, dryrun)
 		if err != nil {
-			log.Errorf("failed to init direct link: %s", link.Name)
-			continue
+			return nil, fmt.Errorf("failed to init direct link: %s", link.Name)
 		}
 
 		dlinks = append(dlinks, dlink)
 	}
 
-	return dlinks
+	return dlinks, nil
 }
 
 func CleanupDirectLinks(links []*DirectLink, dryrun bool) error {

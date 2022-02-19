@@ -68,7 +68,7 @@ func (d *Bridge) CreateLink(target *Namespace, dryrun bool) error {
 	return nil
 }
 
-func InitBridges(links []*config.LinkConfig, dryrun bool) []*Bridge {
+func InitBridges(links []*config.LinkConfig, dryrun bool) ([]*Bridge, error) {
 	var brs []*Bridge
 	for _, link := range links {
 		if link.LinkMode != config.ModeBridge {
@@ -77,14 +77,13 @@ func InitBridges(links []*config.LinkConfig, dryrun bool) []*Bridge {
 
 		br, err := InitBridge(link, dryrun)
 		if err != nil {
-			log.Errorf("failed to init direct link: %s", link.Name)
-			continue
+			return nil, fmt.Errorf("failed to init direct link: %s", link.Name)
 		}
 
 		brs = append(brs, br)
 	}
 
-	return brs
+	return brs, nil
 }
 
 func CleanupBridges(links []*Bridge, dryrun bool) error {

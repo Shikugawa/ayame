@@ -82,6 +82,14 @@ var (
 					continue
 				}
 
+				splited := strings.Split(testName, "-")
+				if len(splited) != 2 {
+					log.Errorf("invalid testname format: %s", testName)
+					continue
+				}
+
+				shouldSuccess := splited[1] == "ok"
+
 				var cfg []byte
 				var ref []byte
 
@@ -118,7 +126,13 @@ var (
 
 					s, err := state.InitResources(c, true)
 					if err != nil {
-						log.Errorf(err.Error())
+						if !shouldSuccess {
+							log.Infof("failed with error: %s", err.Error())
+							log.Infof("================ test %s OK ================", testName)
+						} else {
+							log.Errorf(err.Error())
+						}
+
 						continue
 					}
 

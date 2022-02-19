@@ -84,24 +84,20 @@ func (n *Namespace) Attach(veth *Veth, dryrun bool) error {
 		}
 
 		if config.Configured {
-			log.Warnf("device %s has been attached to namexpace %s", config.NamespaceDeviceConfig.Name, n.Name)
-			continue
+			return fmt.Errorf("device %s has been attached to namexpace %s", config.NamespaceDeviceConfig.Name, n.Name)
 		}
 
 		_, _, err := net.ParseCIDR(config.Cidr)
 		if err != nil {
-			log.Warnf("failed to parse CIDR %s in namespace %s device %s: %s\n", config.Cidr, n.Name, config.Name, err)
-			continue
+			return fmt.Errorf("failed to parse CIDR %s in namespace %s device %s: %s\n", config.Cidr, n.Name, config.Name, err)
 		}
 
 		if err := RunIpLinkSetNamespaces(veth.Name, n.Name, dryrun); err != nil {
-			log.Warnf("failed to set device %s in namespace %s: %s", config.Name, n.Name, err)
-			continue
+			return fmt.Errorf("failed to set device %s in namespace %s: %s", config.Name, n.Name, err)
 		}
 
 		if err := RunAssignCidrToNamespaces(veth.Name, n.Name, config.Cidr, dryrun); err != nil {
-			log.Warnf("failed to assign CIDR %s to ns %s on %s", config.Cidr, n.Name, veth.Name)
-			continue
+			return fmt.Errorf("failed to assign CIDR %s to ns %s on %s", config.Cidr, n.Name, veth.Name)
 		}
 
 		log.Infof("succeeded to attach CIDR %s to dev %s on ns %s\n", config.Cidr, veth.Name, n.Name)
@@ -147,19 +143,16 @@ func InitNamespaces(conf []*config.NamespaceConfig, links []*DirectLink, dryrun 
 
 	for linkName, idxs := range netLinks {
 		if len(idxs) == 1 {
-			log.Warnf("%s have only 1 link in %s\n", linkName, namespaces[idxs[0]].Name)
-			continue
+			return nil, fmt.Errorf("%s have only 1 link in %s\n", linkName, namespaces[idxs[0]].Name)
 		}
 
 		if len(idxs) > 2 {
-			log.Warnf("%s has over 3 links despite it is not supported", linkName)
-			continue
+			return nil, fmt.Errorf("%s has over 3 links despite it is not supported", linkName)
 		}
 
 		linkIdx := findValidLinkIndex(linkName)
 		if linkIdx == -1 {
-			log.Warnf("can't find device %s in configured links", linkName)
-			continue
+			return nil, fmt.Errorf("can't find device %s in configured links", linkName)
 		}
 
 		targetLink := links[linkIdx]

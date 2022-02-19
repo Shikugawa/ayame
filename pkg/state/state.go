@@ -124,17 +124,23 @@ func InitResources(cfg *config.Config, dryrun bool) (*State, error) {
 	state = &State{Namespaces: nil, DirectLinks: nil, Bridges: nil}
 
 	// Init links
-	dlinks := network.InitDirectLinks(cfg.Links, dryrun)
+	dlinks, err := network.InitDirectLinks(cfg.Links, dryrun)
+	if err != nil {
+		return nil, err
+	}
 
 	// Init Bridges
-	brs := network.InitBridges(cfg.Links, dryrun)
+	brs, err := network.InitBridges(cfg.Links, dryrun)
+	if err != nil {
+		network.CleanupDirectLinks(dlinks, dryrun)
+		return nil, err
+	}
 
 	// Init namespaces
 	ns, err := network.InitNamespaces(cfg.Namespaces, dlinks, dryrun)
 	if err != nil {
 		network.CleanupDirectLinks(dlinks, dryrun)
 		network.CleanupBridges(brs, dryrun)
-		network.CleanupNamespaces(ns, dryrun)
 		return nil, err
 	}
 
