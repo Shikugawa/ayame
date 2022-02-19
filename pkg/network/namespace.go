@@ -110,24 +110,31 @@ func (n *Namespace) Attach(veth *Veth, dryrun bool) error {
 	return nil
 }
 
-func InitNamespaces(conf []*config.NamespaceConfig, links []*DirectLink, dryrun bool) ([]*Namespace, error) {
+func InitNamespaces(conf []*config.NamespaceConfig, dryrun bool) ([]*Namespace, error) {
 	var namespaces []*Namespace
-	netLinks := make(map[string][]int)
 
 	// Setup namespaces
 	for _, c := range conf {
 		ns, err := InitNamespace(c, dryrun)
 		if err != nil {
-			return namespaces, err
+			return nil, err
 		}
 
 		namespaces = append(namespaces, ns)
+	}
 
-		for _, device := range c.Devices {
-			if _, ok := netLinks[device.Name]; !ok {
-				netLinks[device.Name] = []int{}
+	return namespaces, nil
+}
+
+func InitNamespacesLinks(namespaces []*Namespace, links []*DirectLink, dryrun bool) error {
+	netLinks := make(map[string][]int)
+
+	for i, ns := range namespaces {
+		for _, devConf := range ns.RegisteredDeviceConfig {
+			if _, ok := netLinks[devConf.Name]; !ok {
+				netLinks[devConf.Name] = []int{}
 			}
-			netLinks[device.Name] = append(netLinks[device.Name], len(namespaces)-1)
+			netLinks[devConf.Name] = append(netLinks[devConf.Name], i)
 		}
 	}
 
@@ -143,25 +150,25 @@ func InitNamespaces(conf []*config.NamespaceConfig, links []*DirectLink, dryrun 
 
 	for linkName, idxs := range netLinks {
 		if len(idxs) == 1 {
-			return nil, fmt.Errorf("%s have only 1 link in %s\n", linkName, namespaces[idxs[0]].Name)
+			return fmt.Errorf("%s have only 1 link in %s\n", linkName, namespaces[idxs[0]].Name)
 		}
 
 		if len(idxs) > 2 {
-			return nil, fmt.Errorf("%s has over 3 links despite it is not supported", linkName)
+			return fmt.Errorf("%s has over 3 links despite it is not supported", linkName)
 		}
 
 		linkIdx := findValidLinkIndex(linkName)
 		if linkIdx == -1 {
-			return nil, fmt.Errorf("can't find device %s in configured links", linkName)
+			return fmt.Errorf("can't find device %s in configured links", linkName)
 		}
 
 		targetLink := links[linkIdx]
 		if err := targetLink.CreateLink(namespaces[idxs[0]], namespaces[idxs[1]], dryrun); err != nil {
-			return namespaces, fmt.Errorf("failed to create links %s: %s", linkName, err.Error())
+			return fmt.Errorf("failed to create links %s: %s", linkName, err.Error())
 		}
 	}
 
-	return namespaces, nil
+	return nil
 }
 
 func CleanupNamespaces(nss []*Namespace, dryrun bool) error {

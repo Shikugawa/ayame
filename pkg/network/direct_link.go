@@ -71,7 +71,7 @@ func InitDirectLinks(links []*config.LinkConfig, dryrun bool) ([]*DirectLink, er
 
 		dlink, err := InitDirectLink(link, dryrun)
 		if err != nil {
-			return nil, fmt.Errorf("failed to init direct link: %s", link.Name)
+			return nil, fmt.Errorf("failed to init direct link: %s: %s", link.Name, err)
 		}
 
 		dlinks = append(dlinks, dlink)

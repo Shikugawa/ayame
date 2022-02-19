@@ -1,0 +1,23 @@
+namespaces:
+  - name: ns1
+    devices:
+      - name: veth1
+        cidr: 192.168.100.10/24
+      - name: veth2
+        cidr: 182.101.101.10/24
+  - name: ns2
+    devices:
+      - name: veth1
+        cidr: 192.168.100.11/24
+  - name: ns3
+    devices:
+      - name: veth2
+        cidr: 182.101.101.11/24
+
+links:
+  - name: veth1
+    mode: direct_link
+  - name: veth2
+    mode: direct_link
+  - name: veth3
+    mode: direct_link

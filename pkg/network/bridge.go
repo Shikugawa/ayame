@@ -16,7 +16,7 @@ type Bridge struct {
 }
 
 func InitBridge(cfg *config.LinkConfig, dryrun bool) (*Bridge, error) {
-	if cfg.LinkMode != config.ModeDirectLink {
+	if cfg.LinkMode != config.ModeBridge {
 		return nil, fmt.Errorf("invalid mode")
 	}
 
@@ -77,7 +77,7 @@ func InitBridges(links []*config.LinkConfig, dryrun bool) ([]*Bridge, error) {
 
 		br, err := InitBridge(link, dryrun)
 		if err != nil {
-			return nil, fmt.Errorf("failed to init direct link: %s", link.Name)
+			return nil, fmt.Errorf("failed to init bridge: %s: %s", link.Name, err)
 		}
 
 		brs = append(brs, br)

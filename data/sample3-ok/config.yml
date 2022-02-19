@@ -8,5 +8,6 @@ namespaces:
       - name: br1
         cidr: 192.168.100.11/24
 
-bridges:
+links:
   - name: br1
+    mode: bridge

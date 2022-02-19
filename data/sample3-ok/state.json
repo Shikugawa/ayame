@@ -1,1 +1,21 @@
-{}
+{
+  "direct_links": null,
+  "bridges": [
+    {
+      "name": "br1",
+      "veth_pairs": null
+    }
+  ],
+  "namespaces": [
+    {
+      "name": "ns1",
+      "is_active": true,
+      "registered_device_config": null
+    },
+    {
+      "name": "ns2",
+      "is_active": true,
+      "registered_device_config": null
+    }
+  ]
+}
