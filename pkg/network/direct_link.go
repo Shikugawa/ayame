@@ -62,8 +62,8 @@ func (d *DirectLink) CreateLink(left *Namespace, right *Namespace, dryrun bool) 
 	return nil
 }
 
-func InitDirectLinks(links []*config.LinkConfig, dryrun bool) ([]*DirectLink, error) {
-	var dlinks []*DirectLink
+func InitDirectLinks(links []*config.LinkConfig, dryrun bool) (map[string]*DirectLink, error) {
+	dlinks := make(map[string]*DirectLink)
 	for _, link := range links {
 		if link.LinkMode != config.ModeDirectLink {
 			continue
@@ -74,13 +74,13 @@ func InitDirectLinks(links []*config.LinkConfig, dryrun bool) ([]*DirectLink, er
 			return nil, fmt.Errorf("failed to init direct link: %s: %s", link.Name, err)
 		}
 
-		dlinks = append(dlinks, dlink)
+		dlinks[dlink.Name] = dlink
 	}
 
 	return dlinks, nil
 }
 
-func CleanupDirectLinks(links []*DirectLink, dryrun bool) error {
+func CleanupDirectLinks(links map[string]*DirectLink, dryrun bool) error {
 	var allerr error
 	for _, link := range links {
 		if err := link.Destroy(dryrun); err != nil {

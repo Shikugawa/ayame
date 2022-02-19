@@ -1,7 +1,7 @@
 {
-  "direct_links": null,
-  "bridges": [
-    {
+  "direct_links": [],
+  "bridges": {
+    "br1": {
       "name": "br1",
       "veth_pairs": [
         {
@@ -28,7 +28,7 @@
         }
       ]
     }
-  ],
+  },
   "namespaces": [
     {
       "name": "ns1",

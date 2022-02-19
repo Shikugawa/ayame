@@ -1,6 +1,6 @@
 {
-  "direct_links": [
-    {
+  "direct_links": {
+    "veth1": {
       "veth_pair": {
         "veth_left": {
           "name": "veth1-left",
@@ -15,7 +15,7 @@
       "name": "veth1",
       "busy": true
     },
-    {
+    "veth2": {
       "veth_pair": {
         "veth_left": {
           "name": "veth2-left",
@@ -30,7 +30,7 @@
       "name": "veth2",
       "busy": true
     },
-    {
+    "veth3": {
       "veth_pair": {
         "veth_left": {
           "name": "veth3-left",
@@ -45,8 +45,8 @@
       "name": "veth3",
       "busy": false
     }
-  ],
-  "bridges": null,
+  },
+  "bridges": {},
   "namespaces": [
     {
       "name": "ns1",

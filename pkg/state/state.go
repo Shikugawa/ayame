@@ -26,9 +26,9 @@ import (
 )
 
 type State struct {
-	DirectLinks []*network.DirectLink `json:"direct_links"`
-	Bridges     []*network.Bridge     `json:"bridges"`
-	Namespaces  []*network.Namespace  `json:"namespaces"`
+	DirectLinks map[string]*network.DirectLink `json:"direct_links"`
+	Bridges     map[string]*network.Bridge     `json:"bridges"`
+	Namespaces  []*network.Namespace           `json:"namespaces"`
 }
 
 var statePath = os.Getenv("HOME") + "/.ayame"
@@ -123,7 +123,7 @@ func InitResources(cfg *config.Config, dryrun bool) (*State, error) {
 
 	state = &State{Namespaces: nil, DirectLinks: nil, Bridges: nil}
 
-	cleanup := func(links []*network.DirectLink, bridges []*network.Bridge, nss []*network.Namespace, dryrun bool) {
+	cleanup := func(links map[string]*network.DirectLink, bridges map[string]*network.Bridge, nss []*network.Namespace, dryrun bool) {
 		if links != nil {
 			network.CleanupDirectLinks(links, dryrun)
 		}

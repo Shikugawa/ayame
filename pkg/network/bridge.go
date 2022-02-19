@@ -68,8 +68,8 @@ func (d *Bridge) CreateLink(target *Namespace, dryrun bool) error {
 	return nil
 }
 
-func InitBridges(links []*config.LinkConfig, dryrun bool) ([]*Bridge, error) {
-	var brs []*Bridge
+func InitBridges(links []*config.LinkConfig, dryrun bool) (map[string]*Bridge, error) {
+	brs := make(map[string]*Bridge)
 	for _, link := range links {
 		if link.LinkMode != config.ModeBridge {
 			continue
@@ -80,13 +80,13 @@ func InitBridges(links []*config.LinkConfig, dryrun bool) ([]*Bridge, error) {
 			return nil, fmt.Errorf("failed to init bridge: %s: %s", link.Name, err)
 		}
 
-		brs = append(brs, br)
+		brs[br.Name] = br
 	}
 
 	return brs, nil
 }
 
-func CleanupBridges(links []*Bridge, dryrun bool) error {
+func CleanupBridges(links map[string]*Bridge, dryrun bool) error {
 	var allerr error
 	for _, link := range links {
 		if err := link.Destroy(dryrun); err != nil {

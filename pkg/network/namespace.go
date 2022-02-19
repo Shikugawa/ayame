@@ -126,18 +126,8 @@ func InitNamespaces(conf []*config.NamespaceConfig, dryrun bool) ([]*Namespace, 
 	return namespaces, nil
 }
 
-func InitNamespacesLinks(namespaces []*Namespace, links []*DirectLink, dryrun bool) error {
+func InitNamespacesLinks(namespaces []*Namespace, links map[string]*DirectLink, dryrun bool) error {
 	netLinks := make(map[string][]int)
-
-	// Configure netlinks
-	findValidLinkIndex := func(name string) int {
-		for i, link := range links {
-			if name == link.Name {
-				return i
-			}
-		}
-		return -1
-	}
 
 	for i, ns := range namespaces {
 		for _, devConf := range ns.RegisteredDeviceConfig {
@@ -145,7 +135,7 @@ func InitNamespacesLinks(namespaces []*Namespace, links []*DirectLink, dryrun bo
 				continue
 			}
 
-			if findValidLinkIndex(devConf.Name) == -1 {
+			if _, ok := links[devConf.Name]; !ok {
 				continue
 			}
 
@@ -161,12 +151,11 @@ func InitNamespacesLinks(namespaces []*Namespace, links []*DirectLink, dryrun bo
 			return fmt.Errorf("%s should have only 2 link in %s\n", linkName, namespaces[idxs[0]].Name)
 		}
 
-		linkIdx := findValidLinkIndex(linkName)
-		if linkIdx == -1 {
+		targetLink, ok := links[linkName]
+		if !ok {
 			return fmt.Errorf("can't find device %s in configured links", linkName)
 		}
 
-		targetLink := links[linkIdx]
 		if err := targetLink.CreateLink(namespaces[idxs[0]], namespaces[idxs[1]], dryrun); err != nil {
 			return fmt.Errorf("failed to create links %s: %s", linkName, err.Error())
 		}
@@ -175,30 +164,20 @@ func InitNamespacesLinks(namespaces []*Namespace, links []*DirectLink, dryrun bo
 	return nil
 }
 
-func InitNamespacesBridges(namespaces []*Namespace, bridges []*Bridge, dryrun bool) error {
-	findValidBridgeIndex := func(name string) int {
-		for i, br := range bridges {
-			if name == br.Name {
-				return i
-			}
-		}
-		return -1
-	}
-
+func InitNamespacesBridges(namespaces []*Namespace, bridges map[string]*Bridge, dryrun bool) error {
 	for _, ns := range namespaces {
 		for _, dev := range ns.RegisteredDeviceConfig {
 			if dev.Configured {
 				continue
 			}
 
-			brIdx := findValidBridgeIndex(dev.Name)
-			if brIdx == -1 {
+			targetLink, ok := bridges[dev.Name]
+			if !ok {
 				continue
 			}
 
-			target := bridges[brIdx]
-			if err := target.CreateLink(ns, dryrun); err != nil {
-				return fmt.Errorf("failed to link %s to bridge %s", ns.Name, target.Name)
+			if err := targetLink.CreateLink(ns, dryrun); err != nil {
+				return fmt.Errorf("failed to link %s to bridge %s", ns.Name, targetLink.Name)
 			}
 		}
 	}

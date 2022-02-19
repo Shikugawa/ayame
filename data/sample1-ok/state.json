@@ -1,6 +1,6 @@
 {
-  "direct_links": [
-    {
+  "direct_links": {
+    "veth1": {
       "veth_pair": {
         "veth_left": {
           "name": "veth1-left",
@@ -15,8 +15,8 @@
       "name": "veth1",
       "busy": true
     }
-  ],
-  "bridges": null,
+  },
+  "bridges": {},
   "namespaces": [
     {
       "name": "ns1",
