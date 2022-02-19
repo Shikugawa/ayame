@@ -27,9 +27,9 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "get current resources",
 	Run: func(cmd *cobra.Command, args []string) {
-		s, err := state.LoadStateFromFile()
-		if err != nil {
-			log.Errorf(err.Error())
+		s := state.LoadResources()
+		if s == nil {
+			log.Errorf("no resources")
 			return
 		}
 

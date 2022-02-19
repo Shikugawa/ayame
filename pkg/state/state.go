@@ -35,24 +35,6 @@ var statePath = os.Getenv("HOME") + "/.ayame"
 
 const stateFileName = "state.json"
 
-func LoadStateFromFile() (*State, error) {
-	if _, err := os.Stat(statePath + "/" + stateFileName); os.IsNotExist(err) {
-		return nil, fmt.Errorf("no saved state")
-	}
-
-	b, err := ioutil.ReadFile(statePath + "/" + stateFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	var state State
-	if err := json.Unmarshal(b, &state); err != nil {
-		return nil, err
-	}
-
-	return &state, nil
-}
-
 func (s *State) SaveState() error {
 	b, err := json.Marshal(s)
 	if err != nil {
@@ -73,14 +55,56 @@ func (s *State) SaveState() error {
 	return nil
 }
 
-func (s *State) DisposeResources() error {
-	if err := network.CleanupDirectLinks(s.DirectLinks, false); err != nil {
+func (s *State) DumpAll() (string, error) {
+	b, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func ResourcesSaved() bool {
+	if _, err := os.Stat(statePath + "/" + stateFileName); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func LoadResources() *State {
+	if !ResourcesSaved() {
+		return nil
+	}
+
+	b, err := ioutil.ReadFile(statePath + "/" + stateFileName)
+	if err != nil {
+		return nil
+	}
+
+	return LoadStateFromBytes(b)
+}
+
+func LoadStateFromBytes(bytes []byte) *State {
+	var state State
+	if err := json.Unmarshal(bytes, &state); err != nil {
+		return nil
+	}
+
+	return &state
+}
+
+func DisposeResources() error {
+	state := LoadResources()
+	if state == nil {
+		return fmt.Errorf("resources have already cleared.")
+	}
+
+	if err := network.CleanupDirectLinks(state.DirectLinks, false); err != nil {
 		return err
 	}
-	if err := network.CleanupBridges(s.Bridges, false); err != nil {
+	if err := network.CleanupBridges(state.Bridges, false); err != nil {
 		return err
 	}
-	if err := network.CleanupNamespaces(s.Namespaces, false); err != nil {
+	if err := network.CleanupNamespaces(state.Namespaces, false); err != nil {
 		return err
 	}
 
@@ -90,19 +114,14 @@ func (s *State) DisposeResources() error {
 	return nil
 }
 
-func (s *State) DumpAll() (string, error) {
-	b, err := json.MarshalIndent(s, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
 // TODO: consider error handling
-func InitAll(cfg *config.Config, currState *State, dryrun bool) (*State, error) {
-	if currState != nil {
-		return nil, fmt.Errorf("must destroy existing resources")
+func InitResources(cfg *config.Config, dryrun bool) (*State, error) {
+	state := LoadResources()
+	if state != nil {
+		return nil, fmt.Errorf("resources have already existed.")
 	}
+
+	state = &State{Namespaces: nil, DirectLinks: nil, Bridges: nil}
 
 	// Init links
 	dlinks := network.InitDirectLinks(cfg.Links, dryrun)
@@ -119,5 +138,9 @@ func InitAll(cfg *config.Config, currState *State, dryrun bool) (*State, error) 
 		return nil, err
 	}
 
-	return &State{Namespaces: ns, DirectLinks: dlinks, Bridges: brs}, nil
+	state.DirectLinks = dlinks
+	state.Bridges = brs
+	state.Namespaces = ns
+
+	return state, nil
 }

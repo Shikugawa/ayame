@@ -26,13 +26,7 @@ var (
 		Use:   "delete",
 		Short: "delete saved network envs",
 		Run: func(cmd *cobra.Command, args []string) {
-			s, err := state.LoadStateFromFile()
-			if err != nil {
-				log.Errorln(err.Error())
-				return
-			}
-
-			if err := s.DisposeResources(); err != nil {
+			if err := state.DisposeResources(); err != nil {
 				log.Errorln(err.Error())
 				return
 			}

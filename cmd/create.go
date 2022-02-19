@@ -41,8 +41,7 @@ var (
 				return
 			}
 
-			st, _ := state.LoadStateFromFile()
-			s, err := state.InitAll(cfg, st, false)
+			st, err := state.InitResources(cfg, false)
 			if err != nil {
 				log.Errorf(err.Error())
 				return
@@ -50,7 +49,7 @@ var (
 
 			log.Info("succeeded to initialize")
 
-			if err := s.SaveState(); err != nil {
+			if err := st.SaveState(); err != nil {
 				log.Errorf(err.Error())
 			}
 		},

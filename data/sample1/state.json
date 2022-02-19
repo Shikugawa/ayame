@@ -1,0 +1,48 @@
+{
+  "direct_links": [
+    {
+      "veth_pair": {
+        "veth_left": {
+          "name": "veth1-left",
+          "attached": true
+        },
+        "veth_right": {
+          "name": "veth1-right",
+          "attached": true
+        },
+        "is_active": true
+      },
+      "name": "veth1",
+      "busy": true
+    }
+  ],
+  "bridges": null,
+  "namespaces": [
+    {
+      "name": "ns1",
+      "is_active": true,
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "veth1",
+            "Cidr": "192.168.100.10/24"
+          },
+          "configured": true
+        }
+      ]
+    },
+    {
+      "name": "ns2",
+      "is_active": true,
+      "registered_device_config": [
+        {
+          "device_config": {
+            "Name": "veth1",
+            "Cidr": "192.168.100.11/24"
+          },
+          "configured": true
+        }
+      ]
+    }
+  ]
+}
