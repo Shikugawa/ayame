@@ -90,14 +90,14 @@
             "Name": "veth1",
             "Cidr": "192.168.100.10/24"
           },
-          "configured": true
+          "attached_veth": "veth1-left"
         },
         {
           "device_config": {
             "Name": "veth2",
             "Cidr": "182.101.101.10/24"
           },
-          "configured": true
+          "attached_veth": "veth2-left"
         }
       ]
     },
@@ -109,7 +109,7 @@
             "Name": "veth1",
             "Cidr": "192.168.100.11/24"
           },
-          "configured": true
+          "attached_veth": "veth1-right"
         }
       ]
     },
@@ -121,14 +121,14 @@
             "Name": "veth2",
             "Cidr": "182.101.101.11/24"
           },
-          "configured": true
+          "attached_veth": "veth2-right"
         },
         {
           "device_config": {
             "Name": "br1",
             "Cidr": "182.102.101.11/24"
           },
-          "configured": true
+          "attached_veth": "br1-1-left"
         }
       ]
     },
@@ -140,7 +140,7 @@
             "Name": "br1",
             "Cidr": "182.102.101.12/24"
           },
-          "configured": true
+          "attached_veth": "br1-2-left"
         }
       ]
     },
@@ -152,7 +152,7 @@
             "Name": "br1",
             "Cidr": "182.102.101.13/24"
           },
-          "configured": true
+          "attached_veth": "br1-3-left"
         }
       ]
     }

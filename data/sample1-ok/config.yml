@@ -11,6 +11,7 @@ namespaces:
       - ls
       - iptables -L
       - iptables -L -t nat
+      - echo $(veth1)
 
 links:
   - name: veth1

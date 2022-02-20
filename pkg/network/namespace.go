@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/Shikugawa/ayame/pkg/config"
@@ -27,7 +28,7 @@ import (
 
 type RegisteredDeviceConfig struct {
 	config.NamespaceDeviceConfig `json:"device_config"`
-	Configured                   bool `json:"configured"`
+	AttachedVeth                 string `json:"attached_veth"`
 }
 
 type Namespace struct {
@@ -39,7 +40,7 @@ func InitNamespace(config *config.NamespaceConfig, dryrun bool) (*Namespace, err
 	var configs []RegisteredDeviceConfig
 	for _, c := range config.Devices {
 		tmp := RegisteredDeviceConfig{
-			Configured: false,
+			AttachedVeth: "",
 		}
 		tmp.NamespaceDeviceConfig = c
 		configs = append(configs, tmp)
@@ -72,35 +73,44 @@ func (n *Namespace) Attach(veth *Veth, dryrun bool) error {
 		return fmt.Errorf("device %s is already attached", veth.Name)
 	}
 
+	targetCfgIdx := -1
 	for idx, config := range n.RegisteredDeviceConfig {
 		if !strings.HasPrefix(veth.Name, config.Name) {
 			continue
 		}
 
-		if config.Configured {
+		if len(config.AttachedVeth) != 0 {
 			return fmt.Errorf("device %s has been attached to namexpace %s", config.NamespaceDeviceConfig.Name, n.Name)
 		}
 
-		_, _, err := net.ParseCIDR(config.Cidr)
-		if err != nil {
-			return fmt.Errorf("failed to parse CIDR %s in namespace %s device %s: %s\n", config.Cidr, n.Name, config.Name, err)
-		}
-
-		if err := RunIpLinkSetNamespaces(veth.Name, n.Name, dryrun); err != nil {
-			return fmt.Errorf("failed to set device %s in namespace %s: %s", config.Name, n.Name, err)
-		}
-
-		if err := RunAssignCidrToNamespaces(veth.Name, n.Name, config.Cidr, dryrun); err != nil {
-			return fmt.Errorf("failed to assign CIDR %s to ns %s on %s", config.Cidr, n.Name, veth.Name)
-		}
-
-		log.Infof("succeeded to attach CIDR %s to dev %s on ns %s\n", config.Cidr, veth.Name, n.Name)
-
-		n.RegisteredDeviceConfig[idx].Configured = true
-		veth.Attached = true
+		targetCfgIdx = idx
 		break
 	}
 
+	if targetCfgIdx == -1 {
+		return fmt.Errorf("proposed device %s can't be attached to %s", veth.Name, n.Name)
+	}
+
+	targetCfg := n.RegisteredDeviceConfig[targetCfgIdx]
+
+	_, _, err := net.ParseCIDR(targetCfg.Cidr)
+	if err != nil {
+		return fmt.Errorf("failed to parse CIDR %s in namespace %s device %s: %s\n",
+			targetCfg.Cidr, n.Name, targetCfg.Name, err)
+	}
+
+	if err := RunIpLinkSetNamespaces(veth.Name, n.Name, dryrun); err != nil {
+		return fmt.Errorf("failed to set device %s in namespace %s: %s", targetCfg.Name, n.Name, err)
+	}
+
+	if err := RunAssignCidrToNamespaces(veth.Name, n.Name, targetCfg.Cidr, dryrun); err != nil {
+		return fmt.Errorf("failed to assign CIDR %s to ns %s on %s", targetCfg.Cidr, n.Name, veth.Name)
+	}
+
+	log.Infof("succeeded to attach CIDR %s to dev %s on ns %s\n", targetCfg.Cidr, veth.Name, n.Name)
+
+	n.RegisteredDeviceConfig[targetCfgIdx].AttachedVeth = veth.Name
+	veth.Attached = true
 	return nil
 }
 
@@ -141,8 +151,20 @@ func (n *Namespace) buildCommand(command string) ([]string, error) {
 	netnsCmd = append(netnsCmd, "exec")
 	netnsCmd = append(netnsCmd, n.Name)
 
+	re := regexp.MustCompile(`[0-9a-zA-Z]*`)
+
 	for _, s := range splited {
-		netnsCmd = append(netnsCmd, s)
+		newCmd := s
+		if res, err := regexp.MatchString(`\$\(.*\)`, newCmd); res && err == nil {
+			devName := re.FindString(newCmd)
+			for _, dev := range n.RegisteredDeviceConfig {
+				if len(dev.AttachedVeth) != 0 && strings.HasPrefix(dev.Name, devName) {
+					newCmd = dev.AttachedVeth
+				}
+			}
+		}
+
+		netnsCmd = append(netnsCmd, newCmd)
 	}
 
 	return netnsCmd, nil
@@ -169,7 +191,7 @@ func InitNamespacesLinks(namespaces []*Namespace, links map[string]*DirectLink, 
 
 	for i, ns := range namespaces {
 		for _, devConf := range ns.RegisteredDeviceConfig {
-			if devConf.Configured {
+			if len(devConf.AttachedVeth) != 0 {
 				continue
 			}
 
@@ -205,7 +227,7 @@ func InitNamespacesLinks(namespaces []*Namespace, links map[string]*DirectLink, 
 func InitNamespacesBridges(namespaces []*Namespace, bridges map[string]*Bridge, dryrun bool) error {
 	for _, ns := range namespaces {
 		for _, dev := range ns.RegisteredDeviceConfig {
-			if dev.Configured {
+			if len(dev.AttachedVeth) != 0 {
 				continue
 			}
 
