@@ -26,6 +26,12 @@ namespaces:
     devices:
       - name: veth1 # device name must be defined in links
         cidr: 192.168.100.10/24
+    commands: # run commands inside namespaces
+      - sysctl -w net.ipv4.ip_forward=1
+      # it supports variables in the command definition.
+      # Variables should be used as the following format: `$(DEVICE_NAME)`
+      # DEVICE_NAME must be defined in the devices. In this example, we can use only `veth1` as a variable.
+      - iptables -A FORWARD -i $(veth1) -d 10.0.0.1 -j ACCEPT
   - name: ns2
     devices:
       - name: veth1 # device name must be defined in links
