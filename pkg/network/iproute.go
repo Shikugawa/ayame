@@ -17,6 +17,7 @@ package network
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -109,4 +110,29 @@ func RunIpNetnsDelete(nsname string, dryrun bool) error {
 	}
 
 	return nil
+}
+
+func CheckIpNetnsExists(nsname string, dryrun bool) bool {
+	cmd := exec.Command("ip", "netns", "list")
+	log.Infoln("execute ", cmd.String())
+
+	if dryrun {
+		return false
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+
+	s := string(output)
+	nslists := strings.Split(s, "\n")
+
+	for _, ns := range nslists {
+		if strings.HasPrefix(ns, nsname) {
+			return true
+		}
+	}
+
+	return false
 }

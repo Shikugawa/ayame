@@ -60,6 +60,12 @@ func InitNamespace(config *config.NamespaceConfig, dryrun bool) (*Namespace, err
 }
 
 func (n *Namespace) Destroy(dryrun bool) error {
+	// namespaces don't exist anymore after host shutted down. Here ignores the closed netns.
+	if !CheckIpNetnsExists(n.Name, dryrun) {
+		log.Infof("%s doesn't exist\n", n.Name)
+		return nil
+	}
+
 	if err := RunIpNetnsDelete(n.Name, dryrun); err != nil {
 		return err
 	}
